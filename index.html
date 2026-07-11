@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -2038,574 +2037,1447 @@ input[type="checkbox"] {
 
     <div class="toast-container" id="toastContainer"></div>
 
-<script>
-    // ===== CONFIGURAÇÃO DO GITHUB =====
-    const GITHUB_TOKEN = "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";
-    const GITHUB_USER = "NativaMdz";
-    const GITHUB_REPO = "Nova-Brawl";
-    
-    // ===== DATA STORE =====
-    let users = [];
-    let currentUser = JSON.parse(localStorage.getItem('novaBrawlCurrentUser') || 'null');
-    let teams = [];
-    let tournaments = [];
-    let supportTickets = [];
-    let uploadedLogoData = null;
-
-    // ===== CARREGAR DADOS DO GITHUB =====
-    async function loadData() {
-        try {
-            const response = await fetch(`https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/data.json`);
-            const fileData = await response.json();
-            const content = JSON.parse(atob(fileData.content));
-            if (content.users) users = content.users;
-            if (content.teams) teams = content.teams;
-            if (content.tickets) supportTickets = content.tickets;
-            if (content.tournaments && content.tournaments.length > 0) {
-                tournaments = content.tournaments;
-            } else {
-                loadDefaultTournaments();
+    <script>
+        // ===== DATA STORE =====
+        let users = JSON.parse(localStorage.getItem('novaBrawlUsers') || '[]');
+        let currentUser = JSON.parse(localStorage.getItem('novaBrawlCurrentUser') || 'null');
+        let teams = JSON.parse(localStorage.getItem('novaBrawlTeams') || '[]');
+        let tournaments = JSON.parse(localStorage.getItem('novaBrawlTournaments') || JSON.stringify([
+            {
+                id: 't1',
+                name: 'Copa Nova Brawl - Temporada 5',
+                mode: 'Brawl Ball 3v3',
+                prize: 'R$ 5.000',
+                status: 'active',
+                date: '2026-07-20T20:00:00',
+                maxTeams: 32,
+                subscribedTeams: [],
+                description: 'O maior campeonato da temporada! Compita com as melhores equipes e mostre seu talento.'
+            },
+            {
+                id: 't2',
+                name: 'Desafio Solo Showdown',
+                mode: 'Solo Showdown',
+                prize: 'R$ 2.000',
+                status: 'upcoming',
+                date: '2026-08-05T18:00:00',
+                maxTeams: 64,
+                subscribedTeams: [],
+                description: 'Desafio individual onde só os melhores sobrevivem!'
+            },
+            {
+                id: 't3',
+                name: 'Copa Gem Grab',
+                mode: 'Gem Grab 3v3',
+                prize: 'R$ 3.000',
+                status: 'upcoming',
+                date: '2026-08-15T19:00:00',
+                maxTeams: 48,
+                subscribedTeams: [],
+                description: 'Competição intensa de Gem Grab. Coordenação é a chave!'
+            },
+            {
+                id: 't4',
+                name: 'Torneio Heist',
+                mode: 'Heist 3v3',
+                prize: 'R$ 1.500',
+                status: 'past',
+                date: '2026-06-10T20:00:00',
+                maxTeams: 24,
+                subscribedTeams: ['team_demo_1', 'team_demo_2'],
+                description: 'Torneio de Heist já encerrado. Veja os resultados!'
             }
-        } catch(e) {
-            console.log('Usando dados padrão...');
-            loadDefaultTournaments();
-        }
-    }
+        ]));
+        let supportTickets = JSON.parse(localStorage.getItem('novaBrawlTickets') || '[]');
+        let uploadedLogoData = null;
 
-    function loadDefaultTournaments() {
-        tournaments = [
-            { id: 't1', name: 'Copa Nova Brawl - Temporada 5', mode: 'Brawl Ball 3v3', prize: 'R$ 5.000', status: 'active', date: '2026-07-20T20:00:00', maxTeams: 32, subscribedTeams: [], description: 'O maior campeonato da temporada! Compita com as melhores equipes e mostre seu talento.' },
-            { id: 't2', name: 'Desafio Solo Showdown', mode: 'Solo Showdown', prize: 'R$ 2.000', status: 'upcoming', date: '2026-08-05T18:00:00', maxTeams: 64, subscribedTeams: [], description: 'Desafio individual onde só os melhores sobrevivem!' },
-            { id: 't3', name: 'Copa Gem Grab', mode: 'Gem Grab 3v3', prize: 'R$ 3.000', status: 'upcoming', date: '2026-08-15T19:00:00', maxTeams: 48, subscribedTeams: [], description: 'Competição intensa de Gem Grab. Coordenação é a chave!' },
-            { id: 't4', name: 'Torneio Heist', mode: 'Heist 3v3', prize: 'R$ 1.500', status: 'past', date: '2026-06-10T20:00:00', maxTeams: 24, subscribedTeams: ['team_demo_1', 'team_demo_2'], description: 'Torneio de Heist já encerrado. Veja os resultados!' }
-        ];
-    }
+        // Parse stored data
+        tournaments = typeof tournaments === 'string' ? JSON.parse(tournaments) : tournaments;
 
-    // ===== SALVAR NO GITHUB =====
-    async function saveData() {
-        try {
-            const getRes = await fetch(`https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/data.json`);
-            const fileInfo = await getRes.json();
-            const sha = fileInfo.sha;
+        // ===== RANKING DATA =====
+        function generateRankingData() {
+            const allTeams = [...teams];
+            // Add some demo teams for ranking
+            const demoNames = ['Nova Elite', 'Shadow Dragons', 'Thunder Strike', 'Phoenix Rising', 
+                'Ice Wolves', 'Golden Lions', 'Dark Knights', 'Fire Eagles', 'Storm Breakers', 'Mystic Force'];
+            const demoLogos = [null, null, null, null, null, null, null, null, null, null];
             
-            const saveObj = { users, teams, tickets: supportTickets, tournaments };
-            const content = btoa(unescape(encodeURIComponent(JSON.stringify(saveObj, null, 2))));
-            
-            await fetch(`https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/data.json`, {
-                method: 'PUT',
-                headers: { 'Authorization': `token ${GITHUB_TOKEN}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: 'Atualizar dados', content: content, sha: sha })
+            demoNames.forEach((name, i) => {
+                if (!allTeams.find(t => t.name === name)) {
+                    allTeams.push({
+                        id: 'demo_' + i,
+                        name: name,
+                        logo: null,
+                        players: [
+                            { nick: 'Player' + (i*3+1), tag: '#ABC' + i, trophies: 25000 + Math.floor(Math.random() * 10000), isCaptain: true },
+                            { nick: 'Player' + (i*3+2), tag: '#DEF' + i, trophies: 22000 + Math.floor(Math.random() * 10000), isCaptain: false },
+                            { nick: 'Player' + (i*3+3), tag: '#GHI' + i, trophies: 20000 + Math.floor(Math.random() * 10000), isCaptain: false }
+                        ],
+                        winRate: 60 + Math.floor(Math.random() * 30),
+                        elo: 800 + Math.floor(Math.random() * 1200),
+                        wins: Math.floor(Math.random() * 50) + 10,
+                        losses: Math.floor(Math.random() * 30),
+                        createdAt: new Date(Date.now() - Math.random() * 10000000000).toISOString()
+                    });
+                }
             });
-        } catch(e) {
-            console.log('Erro ao salvar no GitHub:', e);
-        }
-    }
 
-    // ===== RANKING DATA =====
-    function generateRankingData() {
-        const allTeams = [...teams];
-        const demoNames = ['Nova Elite', 'Shadow Dragons', 'Thunder Strike', 'Phoenix Rising', 
-            'Ice Wolves', 'Golden Lions', 'Dark Knights', 'Fire Eagles', 'Storm Breakers', 'Mystic Force'];
+            // Ensure all teams have elo
+            allTeams.forEach(t => {
+                if (!t.elo) t.elo = 800 + Math.floor(Math.random() * 1200);
+                if (!t.wins) t.wins = Math.floor(Math.random() * 50) + 10;
+                if (!t.losses) t.losses = Math.floor(Math.random() * 30);
+                if (!t.winRate) t.winRate = Math.round((t.wins / (t.wins + t.losses)) * 100);
+            });
+
+            // Sort by ELO
+            allTeams.sort((a, b) => (b.elo || 0) - (a.elo || 0));
+            
+            // Assign ranks and trends
+            return allTeams.map((t, i) => ({
+                ...t,
+                rank: i + 1,
+                trend: Math.random() > 0.5 ? 'up' : (Math.random() > 0.5 ? 'down' : 'same'),
+                trendValue: Math.floor(Math.random() * 5) + 1
+            }));
+        }
+
+        function getEloLevel(elo) {
+            if (elo >= 1800) return { name: 'Mestre', class: 'elo-master' };
+            if (elo >= 1500) return { name: 'Diamante', class: 'elo-diamond' };
+            if (elo >= 1200) return { name: 'Ouro', class: 'elo-gold' };
+            return { name: 'Prata', class: 'elo-silver' };
+        }
+
+        // ===== USER MANAGEMENT =====
+        function saveUsers() {
+            localStorage.setItem('novaBrawlUsers', JSON.stringify(users));
+        }
+
+        function saveCurrentUser() {
+            localStorage.setItem('novaBrawlCurrentUser', JSON.stringify(currentUser));
+        }
+
+        function handleRegister(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('regName').value.trim();
+            const nick = document.getElementById('regNick').value.trim();
+            const tag = document.getElementById('regTag').value.trim();
+            const email = document.getElementById('regEmail').value.trim();
+            const password = document.getElementById('regPassword').value;
+            const confirmPassword = document.getElementById('regConfirmPassword').value;
+            
+            // Validation
+            if (password !== confirmPassword) {
+                showNotification('As senhas não coincidem!', 'error');
+                return;
+            }
+            
+            if (users.find(u => u.email === email)) {
+                showNotification('Este e-mail já está cadastrado!', 'error');
+                return;
+            }
+            
+            if (!tag.startsWith('#')) {
+                showNotification('A tag do Brawl Stars deve começar com #', 'error');
+                return;
+            }
+            
+            const newUser = {
+                id: Date.now().toString(),
+                name,
+                nick,
+                tag: tag.toUpperCase(),
+                email,
+                password, // In production, hash this!
+                createdAt: new Date().toISOString(),
+                teamId: null
+            };
+            
+            users.push(newUser);
+            saveUsers();
+            
+            currentUser = { ...newUser };
+            delete currentUser.password;
+            saveCurrentUser();
+            
+            closeModal('registerModal');
+            updateUI();
+            showNotification(`Conta criada com sucesso! Bem-vindo, ${name}!`, 'success');
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            const rememberMe = document.getElementById('rememberMe').checked;
+            
+            const user = users.find(u => u.email === email && u.password === password);
+            
+            if (!user) {
+                showNotification('E-mail ou senha incorretos!', 'error');
+                return;
+            }
+            
+            currentUser = { ...user };
+            delete currentUser.password;
+            
+            if (rememberMe) {
+                saveCurrentUser();
+            } else {
+                sessionStorage.setItem('novaBrawlCurrentUser', JSON.stringify(currentUser));
+            }
+            
+            closeModal('loginModal');
+            updateUI();
+            showNotification(`Bem-vindo de volta, ${user.name}!`, 'success');
+        }
+
+        function handleLogout() {
+            currentUser = null;
+            localStorage.removeItem('novaBrawlCurrentUser');
+            sessionStorage.removeItem('novaBrawlCurrentUser');
+            updateUI();
+            showNotification('Você saiu da sua conta.', 'info');
+            showSection('home');
+        }
+
+        function showRegisterForm() {
+            closeModal('loginModal');
+            openModal('registerModal');
+        }
+
+        function showLoginForm() {
+            closeModal('registerModal');
+            openModal('loginModal');
+        }
+
+        function handleHeroLogin() {
+            if (currentUser) {
+                showSection('tournaments');
+            } else {
+                openModal('loginModal');
+            }
+        }
+
+        function updateUI() {
+            const headerActions = document.getElementById('headerActions');
+            const heroLoginBtn = document.getElementById('heroLoginBtn');
+            
+            if (currentUser) {
+                headerActions.innerHTML = `
+                    <div style="position: relative;">
+                        <button class="icon-btn" onclick="showNotification('Você tem notificações', 'info')">
+                            <i class="fas fa-bell"></i>
+                            <span class="badge">3</span>
+                        </button>
+                    </div>
+                    <div class="dropdown">
+                        <div class="user-avatar" onclick="toggleDropdown()" title="${escapeHtml(currentUser.name)}">
+                            ${currentUser.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div class="dropdown-menu" id="userDropdown">
+                            <a onclick="showSection('teams'); closeDropdown();">
+                                <i class="fas fa-users"></i> Minhas Equipes
+                            </a>
+                            <a onclick="showSection('tournaments'); closeDropdown();">
+                                <i class="fas fa-trophy"></i> Campeonatos
+                            </a>
+                            <a onclick="showSection('support'); closeDropdown();">
+                                <i class="fas fa-headset"></i> Suporte
+                            </a>
+                            <hr style="border-color: var(--white-10); margin: 0.5rem 0;">
+                            <a onclick="handleLogout(); closeDropdown();">
+                                <i class="fas fa-sign-out-alt"></i> Sair
+                            </a>
+                        </div>
+                    </div>
+                    <button class="icon-btn menu-toggle" onclick="toggleSidebar()" style="display: none;">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                `;
+                if (heroLoginBtn) {
+                    heroLoginBtn.innerHTML = '<i class="fas fa-trophy"></i> Ver Campeonatos';
+                }
+            } else {
+                headerActions.innerHTML = `
+                    <div style="position: relative;">
+                        <button class="icon-btn" onclick="showNotification('Faça login para ver notificações', 'warning')">
+                            <i class="fas fa-bell"></i>
+                        </button>
+                    </div>
+                    <button class="btn btn-primary" onclick="openModal('loginModal')">
+                        <i class="fas fa-sign-in-alt"></i> Entrar
+                    </button>
+                    <button class="icon-btn menu-toggle" onclick="toggleSidebar()" style="display: none;">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                `;
+                if (heroLoginBtn) {
+                    heroLoginBtn.innerHTML = '<i class="fas fa-users"></i> Entrar na Comunidade';
+                }
+            }
+            
+            handleResponsive();
+            renderAllContent();
+        }
+
+        function toggleDropdown() {
+            const dropdown = document.getElementById('userDropdown');
+            if (dropdown) dropdown.classList.toggle('active');
+        }
+
+        function closeDropdown() {
+            const dropdown = document.getElementById('userDropdown');
+            if (dropdown) dropdown.classList.remove('active');
+        }
+
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.dropdown')) {
+                closeDropdown();
+            }
+        });
+
+        // ===== TOURNAMENT SUBSCRIPTION =====
+        function subscribeToTournament() {
+            if (!currentUser) {
+                showNotification('Faça login para se inscrever em campeonatos!', 'warning');
+                openModal('loginModal');
+                return;
+            }
+            
+            const userTeam = teams.find(t => 
+                t.players.some(p => p.tag === currentUser.tag) ||
+                t.createdBy === currentUser.id
+            );
+            
+            if (!userTeam) {
+                showNotification('Você precisa ter uma equipe registrada para se inscrever! Crie uma equipe primeiro.', 'warning');
+                setTimeout(() => showSection('teams'), 1500);
+                return;
+            }
+            
+            const activeTournament = tournaments.find(t => t.status === 'active');
+            if (!activeTournament) {
+                showNotification('Nenhum campeonato ativo no momento.', 'info');
+                return;
+            }
+            
+            if (activeTournament.subscribedTeams.includes(userTeam.id)) {
+                showNotification('Sua equipe já está inscrita neste campeonato!', 'info');
+                return;
+            }
+            
+            if (activeTournament.subscribedTeams.length >= activeTournament.maxTeams) {
+                showNotification('Este campeonato já atingiu o número máximo de equipes!', 'error');
+                return;
+            }
+            
+            activeTournament.subscribedTeams.push(userTeam.id);
+            saveTournaments();
+            showNotification(`Equipe "${userTeam.name}" inscrita com sucesso na ${activeTournament.name}! 🎉`, 'success');
+        }
+
+        function saveTournaments() {
+            localStorage.setItem('novaBrawlTournaments', JSON.stringify(tournaments));
+        }
+
+        function subscribeToTournamentById(tournamentId) {
+            if (!currentUser) {
+                showNotification('Faça login para se inscrever!', 'warning');
+                openModal('loginModal');
+                return;
+            }
+            
+            const userTeam = teams.find(t => 
+                t.players.some(p => p.tag === currentUser.tag) ||
+                t.createdBy === currentUser.id
+            );
+            
+            if (!userTeam) {
+                showNotification('Você precisa ter uma equipe registrada para se inscrever!', 'warning');
+                return;
+            }
+            
+            const tournament = tournaments.find(t => t.id === tournamentId);
+            if (!tournament) return;
+            
+            if (tournament.subscribedTeams.includes(userTeam.id)) {
+                showNotification('Sua equipe já está inscrita!', 'info');
+                return;
+            }
+            
+            if (tournament.subscribedTeams.length >= tournament.maxTeams) {
+                showNotification('Campeonato lotado!', 'error');
+                return;
+            }
+            
+            tournament.subscribedTeams.push(userTeam.id);
+            saveTournaments();
+            showNotification(`Equipe "${userTeam.name}" inscrita na ${tournament.name}! 🎉`, 'success');
+            renderTournaments();
+        }
+
+        function unsubscribeFromTournament(tournamentId) {
+            if (!currentUser) return;
+            
+            const userTeam = teams.find(t => 
+                t.players.some(p => p.tag === currentUser.tag) ||
+                t.createdBy === currentUser.id
+            );
+            
+            if (!userTeam) return;
+            
+            const tournament = tournaments.find(t => t.id === tournamentId);
+            if (!tournament) return;
+            
+            tournament.subscribedTeams = tournament.subscribedTeams.filter(id => id !== userTeam.id);
+            saveTournaments();
+            showNotification('Inscrição cancelada.', 'info');
+            renderTournaments();
+        }
+
+        // ===== SUPPORT SYSTEM =====
+        function openNewTicket() {
+            if (!currentUser) {
+                showNotification('Faça login para abrir um ticket de suporte!', 'warning');
+                openModal('loginModal');
+                return;
+            }
+            
+            const category = prompt('Categoria do problema:\n1 - Problema Técnico\n2 - Dúvida sobre Campeonatos\n3 - Denúncia\n4 - Sugestão\n5 - Outro\n\nDigite o número:');
+            const categories = ['', 'Problema Técnico', 'Dúvida sobre Campeonatos', 'Denúncia', 'Sugestão', 'Outro'];
+            const categoryName = categories[parseInt(category)] || 'Outro';
+            
+            const subject = prompt('Assunto do ticket:');
+            if (!subject) return;
+            
+            const description = prompt('Descreva seu problema em detalhes:');
+            if (!description) return;
+            
+            const ticket = {
+                id: 'TKT-' + Date.now().toString().slice(-6),
+                userId: currentUser.id,
+                userName: currentUser.name,
+                category: categoryName,
+                subject,
+                description,
+                status: 'open',
+                createdAt: new Date().toISOString(),
+                messages: [
+                    {
+                        from: 'user',
+                        text: description,
+                        time: new Date().toISOString()
+                    },
+                    {
+                        from: 'support',
+                        text: 'Olá! Recebemos seu ticket. Nossa equipe irá analisar e responder em breve. Enquanto isso, você pode enviar mais informações por aqui.',
+                        time: new Date().toISOString()
+                    }
+                ]
+            };
+            
+            supportTickets.unshift(ticket);
+            saveTickets();
+            showNotification(`Ticket #${ticket.id} criado com sucesso!`, 'success');
+            renderSupportContent();
+        }
+
+        function saveTickets() {
+            localStorage.setItem('novaBrawlTickets', JSON.stringify(supportTickets));
+        }
+
+        function openSupportChat(ticketId) {
+            const ticket = supportTickets.find(t => t.id === ticketId);
+            if (!ticket) return;
+            
+            document.getElementById('supportTicketId').textContent = ticket.id;
+            document.getElementById('supportChatTitle').textContent = `Ticket #${ticket.id} - ${ticket.subject}`;
+            
+            const messagesContainer = document.getElementById('supportChatMessages');
+            messagesContainer.innerHTML = ticket.messages.map(m => `
+                <div class="chat-message ${m.from}">
+                    <strong>${m.from === 'user' ? 'Você' : 'Suporte Nova Brawl'}</strong>
+                    <p>${escapeHtml(m.text)}</p>
+                    <div class="msg-time">${new Date(m.time).toLocaleString('pt-BR')}</div>
+                </div>
+            `).join('');
+            
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            
+            // Store current ticket ID for sending messages
+            document.getElementById('supportChatInput').dataset.ticketId = ticketId;
+            
+            openModal('supportChatModal');
+        }
+
+        function sendSupportMessage() {
+            const input = document.getElementById('supportChatInput');
+            const ticketId = input.dataset.ticketId;
+            const text = input.value.trim();
+            
+            if (!text || !ticketId) return;
+            
+            const ticket = supportTickets.find(t => t.id === ticketId);
+            if (!ticket) return;
+            
+            ticket.messages.push({
+                from: 'user',
+                text,
+                time: new Date().toISOString()
+            });
+            
+            saveTickets();
+            
+            // Auto-reply simulation
+            setTimeout(() => {
+                ticket.messages.push({
+                    from: 'support',
+                    text: 'Obrigado pela informação adicional! Nossa equipe continua analisando seu caso.',
+                    time: new Date().toISOString()
+                });
+                saveTickets();
+                
+                // Refresh chat if still open
+                if (document.getElementById('supportChatModal').classList.contains('active')) {
+                    openSupportChat(ticketId);
+                }
+            }, 2000);
+            
+            input.value = '';
+            openSupportChat(ticketId);
+        }
+
+        function closeTicket(ticketId) {
+            if (!confirm('Tem certeza que deseja fechar este ticket?')) return;
+            
+            const ticket = supportTickets.find(t => t.id === ticketId);
+            if (!ticket) return;
+            
+            ticket.status = 'closed';
+            ticket.messages.push({
+                from: 'support',
+                text: 'Ticket fechado. Obrigado pelo contato!',
+                time: new Date().toISOString()
+            });
+            saveTickets();
+            showNotification('Ticket fechado.', 'info');
+            renderSupportContent();
+        }
+
+        // ===== CONTENT RENDERING =====
+        function renderAllContent() {
+            renderStats();
+            renderFeaturedTeams();
+            renderNews();
+            renderTournaments();
+            renderTeamsGrid();
+            renderRankings();
+            renderSupportContent();
+            renderChatContent();
+        }
+
+        function renderStats() {
+            const container = document.getElementById('statsGrid');
+            if (!container) return;
+            
+            const totalTeamsCount = teams.length + 4;
+            const totalPlayers = currentUser ? users.length + 12500 : 12500;
+            const totalTournaments = tournaments.length;
+            const totalPrize = 'R$ 25k';
+            
+            container.innerHTML = `
+                <div class="stat-card glass-hover animate-fadeIn">
+                    <div class="stat-icon gold"><i class="fas fa-trophy"></i></div>
+                    <div class="stat-value">${totalTeamsCount}</div>
+                    <div class="stat-label">Equipes Registradas</div>
+                </div>
+                <div class="stat-card glass-hover animate-fadeIn" style="animation-delay: 0.1s;">
+                    <div class="stat-icon blue"><i class="fas fa-users"></i></div>
+                    <div class="stat-value">${(totalPlayers / 1000).toFixed(1)}k</div>
+                    <div class="stat-label">Jogadores Ativos</div>
+                </div>
+                <div class="stat-card glass-hover animate-fadeIn" style="animation-delay: 0.2s;">
+                    <div class="stat-icon green"><i class="fas fa-calendar-check"></i></div>
+                    <div class="stat-value">${totalTournaments}</div>
+                    <div class="stat-label">Campeonatos</div>
+                </div>
+                <div class="stat-card glass-hover animate-fadeIn" style="animation-delay: 0.3s;">
+                    <div class="stat-icon purple"><i class="fas fa-star"></i></div>
+                    <div class="stat-value">${totalPrize}</div>
+                    <div class="stat-label">Em Premiações</div>
+                </div>
+            `;
+        }
+
+        function renderFeaturedTeams() {
+            const container = document.getElementById('featuredTeams');
+            if (!container) return;
+            
+            const rankingData = generateRankingData();
+            const topTeams = rankingData.slice(0, 4);
+            
+            container.innerHTML = topTeams.map((team, i) => {
+                const logoContent = team.logo 
+                    ? `<img src="${team.logo}" alt="${team.name}">`
+                    : getDefaultLogoIcon(i);
+                const bgStyle = team.logo ? '' : getDefaultLogoStyle(i);
+                
+                return `
+                    <div class="card glass-hover" style="text-align: center; padding: 2rem; cursor: pointer;" onclick="viewTeam('${team.id}')">
+                        <div class="team-logo-placeholder" style="${bgStyle}">${logoContent}</div>
+                        <h3>${escapeHtml(team.name)}</h3>
+                        <p style="color: var(--white-50);">Win Rate: ${team.winRate}%</p>
+                        <p style="color: var(--gold); margin-top: 0.5rem;">★ Top ${team.rank} Ranking</p>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderNews() {
+            const newsContainer = document.getElementById('newsGrid');
+            const allNewsContainer = document.getElementById('allNewsGrid');
+            
+            const newsItems = [
+                { title: 'Nova Temporada Chegando!', text: 'Prepare-se para a Temporada 5 com novos mapas, brawlers e premiações recordes.', icon: 'fa-trophy', time: '2 horas atrás' },
+                { title: 'Resultados da Copa Nova', text: 'Confira os vencedores da última copa e os destaques da competição.', icon: 'fa-medal', time: '5 horas atrás' },
+                { title: 'Novas Recompensas', text: 'Sistema de recompensas atualizado com novos badges e moedas da comunidade.', icon: 'fa-gift', time: '8 horas atrás' },
+                { title: 'Atualização de Balanceamento', text: 'Confira as mudanças de balanceamento dos brawlers para a nova temporada.', icon: 'fa-balance-scale', time: '1 dia atrás' },
+                { title: 'Entrevista com Campeões', text: 'Conversamos com os vencedores da última temporada sobre suas estratégias.', icon: 'fa-microphone', time: '2 dias atrás' },
+                { title: 'Novo Modo de Jogo', text: 'Rumores indicam um novo modo de jogo chegando na próxima atualização.', icon: 'fa-gamepad', time: '3 dias atrás' }
+            ];
+            
+            const newsHTML = newsItems.map(n => `
+                <div class="card glass-hover">
+                    <div class="card-image"><i class="fas ${n.icon}"></i></div>
+                    <div class="card-body">
+                        <h3 class="card-title">${n.title}</h3>
+                        <p class="card-text">${n.text}</p>
+                        <div class="card-footer">
+                            <span><i class="far fa-clock"></i> ${n.time}</span>
+                            <span style="color: var(--gold); cursor: pointer;">Leia mais →</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            if (newsContainer) newsContainer.innerHTML = newsHTML.slice(0, 3);
+            if (allNewsContainer) allNewsContainer.innerHTML = newsHTML;
+        }
+
+        function renderTournaments() {
+            const container = document.getElementById('tournamentsContent');
+            if (!container) return;
+            
+            const activeTab = document.querySelector('#tournamentTabs .tab.active');
+            const tab = activeTab ? activeTab.dataset.tab : 'active';
+            
+            let filteredTournaments = tournaments;
+            
+            if (tab === 'subscribed') {
+                if (!currentUser) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-lock"></i>
+                            <h3>Faça login para ver suas inscrições</h3>
+                            <button class="btn btn-primary mt-4" onclick="openModal('loginModal')">
+                                <i class="fas fa-sign-in-alt"></i> Entrar
+                            </button>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const userTeam = teams.find(t => 
+                    t.players.some(p => p.tag === currentUser.tag) ||
+                    t.createdBy === currentUser.id
+                );
+                
+                filteredTournaments = tournaments.filter(t => 
+                    userTeam && t.subscribedTeams.includes(userTeam.id)
+                );
+            } else {
+                filteredTournaments = tournaments.filter(t => t.status === tab);
+            }
+            
+            if (filteredTournaments.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-calendar-times"></i>
+                        <h3>Nenhum campeonato encontrado</h3>
+                        <p>${tab === 'subscribed' ? 'Sua equipe não está inscrita em nenhum campeonato.' : 'Volte mais tarde para conferir novos campeonatos.'}</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const userTeam = currentUser ? teams.find(t => 
+                t.players.some(p => p.tag === currentUser.tag) ||
+                t.createdBy === currentUser.id
+            ) : null;
+            
+            container.innerHTML = filteredTournaments.map(t => {
+                const isSubscribed = userTeam && t.subscribedTeams.includes(userTeam.id);
+                const spotsLeft = t.maxTeams - t.subscribedTeams.length;
+                const statusLabels = {
+                    active: { text: 'Ativo', class: 'status-open' },
+                    upcoming: { text: 'Em breve', class: 'status-progress' },
+                    past: { text: 'Encerrado', class: 'status-closed' }
+                };
+                const status = statusLabels[t.status] || statusLabels.upcoming;
+                
+                return `
+                    <div class="countdown-section" style="margin: 1rem 0;">
+                        <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 1rem;">
+                            <div>
+                                <span class="ticket-status ${status.class}">${status.text}</span>
+                                <h3 style="color: var(--gold); margin-top: 0.8rem;">${escapeHtml(t.name)}</h3>
+                                <p style="color: var(--white-70);">Modo: ${t.mode} | Premiação: ${t.prize}</p>
+                                <p style="color: var(--white-50); font-size: 0.85rem;">
+                                    Data: ${new Date(t.date).toLocaleDateString('pt-BR')} às ${new Date(t.date).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}
+                                </p>
+                                <p style="color: var(--white-50); font-size: 0.85rem;">
+                                    Vagas: ${t.subscribedTeams.length}/${t.maxTeams} 
+                                    (${spotsLeft} disponíveis)
+                                </p>
+                                <p style="color: var(--white-70); margin-top: 0.5rem;">${t.description}</p>
+                            </div>
+                            <div>
+                                ${t.status === 'past' ? `
+                                    <button class="btn btn-outline btn-sm" disabled>
+                                        <i class="fas fa-lock"></i> Encerrado
+                                    </button>
+                                ` : isSubscribed ? `
+                                    <button class="btn btn-danger btn-sm" onclick="unsubscribeFromTournament('${t.id}')">
+                                        <i class="fas fa-times-circle"></i> Cancelar Inscrição
+                                    </button>
+                                ` : `
+                                    <button class="btn btn-primary btn-sm" onclick="subscribeToTournamentById('${t.id}')" ${spotsLeft <= 0 ? 'disabled' : ''}>
+                                        <i class="fas fa-check-circle"></i> ${spotsLeft <= 0 ? 'Lotado' : 'Inscrever Equipe'}
+                                    </button>
+                                `}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderRankings() {
+            const container = document.getElementById('rankingBody');
+            if (!container) return;
+            
+            const rankingData = generateRankingData();
+            
+            container.innerHTML = rankingData.map((team, i) => {
+                const eloLevel = getEloLevel(team.elo);
+                const rankClass = i < 3 ? `rank-${i+1}` : 'rank-other';
+                const trendIcon = team.trend === 'up' ? '↑' : (team.trend === 'down' ? '↓' : '–');
+                const trendClass = team.trend === 'up' ? 'rank-up' : (team.trend === 'down' ? 'rank-down' : 'rank-same');
+                
+                return `
+                    <tr>
+                        <td>
+                            <div class="rank-badge ${rankClass}">#${team.rank}</div>
+                        </td>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 0.8rem;">
+                                <div class="team-card-logo" style="width: 40px; height: 40px; ${getDefaultLogoStyle(i)}">
+                                    ${team.logo ? `<img src="${team.logo}" alt="" style="width:100%;height:100%;object-fit:cover;">` : getDefaultLogoIcon(i)}
+                                </div>
+                                <strong>${escapeHtml(team.name)}</strong>
+                            </div>
+                        </td>
+                        <td><strong>${team.elo}</strong></td>
+                        <td><span class="elo-badge ${eloLevel.class}">${eloLevel.name}</span></td>
+                        <td>${team.wins}V / ${team.losses}D</td>
+                        <td>
+                            ${team.winRate}%
+                            <div class="progress-bar">
+                                <div class="progress-fill progress-gold" style="width: ${team.winRate}%;"></div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="rank-change ${trendClass}">
+                                ${trendIcon} ${team.trendValue}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderSupportContent() {
+            const container = document.getElementById('supportContent');
+            if (!container) return;
+            
+            if (!currentUser) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-lock"></i>
+                        <h3>Faça login para acessar o suporte</h3>
+                        <p>Você precisa estar logado para abrir tickets de suporte.</p>
+                        <button class="btn btn-primary mt-4" onclick="openModal('loginModal')">
+                            <i class="fas fa-sign-in-alt"></i> Entrar
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+            
+            const myTickets = supportTickets.filter(t => t.userId === currentUser.id);
+            
+            container.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;">
+                    <p style="color: var(--white-70);">Bem-vindo à Central de Suporte, <strong class="text-gold">${escapeHtml(currentUser.name)}</strong>!</p>
+                    <button class="btn btn-primary" onclick="openNewTicket()">
+                        <i class="fas fa-plus-circle"></i> Abrir Novo Ticket
+                    </button>
+                </div>
+                
+                <h3 style="color: var(--gold); margin-bottom: 1rem;">
+                    <i class="fas fa-ticket-alt"></i> Meus Tickets (${myTickets.length})
+                </h3>
+                
+                ${myTickets.length === 0 ? `
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <h3>Nenhum ticket aberto</h3>
+                        <p>Você ainda não abriu nenhum ticket de suporte.</p>
+                    </div>
+                ` : myTickets.map(t => {
+                    const statusLabels = {
+                        open: { text: 'Aberto', class: 'status-open' },
+                        'in-progress': { text: 'Em andamento', class: 'status-progress' },
+                        closed: { text: 'Fechado', class: 'status-closed' }
+                    };
+                    const status = statusLabels[t.status] || statusLabels.open;
+                    
+                    return `
+                        <div class="ticket-card">
+                            <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 1rem;">
+                                <div>
+                                    <span class="ticket-status ${status.class}">${status.text}</span>
+                                    <strong style="margin-left: 0.5rem;">#${t.id}</strong>
+                                    <h4 style="margin-top: 0.5rem;">${escapeHtml(t.subject)}</h4>
+                                    <p style="color: var(--white-50); font-size: 0.85rem;">Categoria: ${t.category}</p>
+                                    <p style="color: var(--white-30); font-size: 0.8rem;">Criado em ${new Date(t.createdAt).toLocaleString('pt-BR')}</p>
+                                    <p style="color: var(--white-30); font-size: 0.8rem;">${t.messages.length} mensagens</p>
+                                </div>
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <button class="btn btn-outline btn-sm" onclick="openSupportChat('${t.id}')">
+                                        <i class="fas fa-comments"></i> Conversar
+                                    </button>
+                                    ${t.status !== 'closed' ? `
+                                        <button class="btn btn-danger btn-sm" onclick="closeTicket('${t.id}')">
+                                            <i class="fas fa-times"></i> Fechar
+                                        </button>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+                
+                <div class="glass" style="padding: 2rem; border-radius: 1rem; margin-top: 2rem;">
+                    <h3 style="color: var(--gold); margin-bottom: 1rem;"><i class="fas fa-question-circle"></i> Perguntas Frequentes</h3>
+                    <div style="display: grid; gap: 1rem;">
+                        <div class="glass-hover" style="padding: 1rem; border-radius: 0.75rem;">
+                            <strong>Como criar uma equipe?</strong>
+                            <p style="color: var(--white-50);">Vá até a seção "Equipes" e clique em "Criar Nova Equipe". Preencha os dados dos 3 jogadores.</p>
+                        </div>
+                        <div class="glass-hover" style="padding: 1rem; border-radius: 0.75rem;">
+                            <strong>Como me inscrever em campeonatos?</strong>
+                            <p style="color: var(--white-50);">É necessário ter uma equipe registrada. Depois, vá em "Campeonatos" e clique em "Inscrever Equipe".</p>
+                        </div>
+                        <div class="glass-hover" style="padding: 1rem; border-radius: 0.75rem;">
+                            <strong>Como funciona o ranking?</strong>
+                            <p style="color: var(--white-50);">O ranking é baseado no sistema ELO. Ganhe pontos participando de campeonatos e vencendo partidas.</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderChatContent() {
+            const container = document.getElementById('chatContent');
+            if (!container) return;
+            
+            if (!currentUser) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-lock"></i>
+                        <h3>Faça login para acessar o chat</h3>
+                        <p>Converse com outros jogadores em tempo real.</p>
+                        <button class="btn btn-primary mt-4" onclick="openModal('loginModal')">
+                            <i class="fas fa-sign-in-alt"></i> Entrar
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = `
+                <div class="glass" style="padding: 1.5rem; border-radius: 1rem; text-align: center;">
+                    <i class="fas fa-comments" style="font-size: 3rem; color: var(--gold); margin-bottom: 1rem;"></i>
+                    <h3>Chat da Comunidade</h3>
+                    <p style="color: var(--white-50);">Bem-vindo, <strong class="text-gold">${escapeHtml(currentUser.name)}</strong>!</p>
+                    <p style="color: var(--white-30); margin-top: 1rem;">O chat ao vivo estará disponível em breve. Enquanto isso, use o suporte para se comunicar!</p>
+                </div>
+            `;
+        }
+
+        function renderTeamsGrid() {
+    const container = document.getElementById('teamsGrid');
+    const emptyState = document.getElementById('emptyTeams');
+    if (!container) return;
+    
+    if (teams.length === 0) {
+        container.innerHTML = '';
+        if (emptyState) emptyState.style.display = 'block';
+        return;
+    }
+    
+    if (emptyState) emptyState.style.display = 'none';
+    
+    container.innerHTML = teams.map((team, i) => {
+        const logoContent = team.logo 
+            ? `<img src="${team.logo}" alt="${team.name}" style="width:100%;height:100%;object-fit:cover;">`
+            : getDefaultLogoIcon(i);
+        const bgStyle = team.logo ? '' : getDefaultLogoStyle(i);
         
-        demoNames.forEach((name, i) => {
-            if (!allTeams.find(t => t.name === name)) {
-                allTeams.push({
-                    id: 'demo_' + i, name, logo: null,
-                    players: [
-                        { nick: 'Player' + (i*3+1), tag: '#ABC' + i, trophies: 25000 + Math.floor(Math.random() * 10000), isCaptain: true },
-                        { nick: 'Player' + (i*3+2), tag: '#DEF' + i, trophies: 22000 + Math.floor(Math.random() * 10000), isCaptain: false },
-                        { nick: 'Player' + (i*3+3), tag: '#GHI' + i, trophies: 20000 + Math.floor(Math.random() * 10000), isCaptain: false }
-                    ],
-                    winRate: 60 + Math.floor(Math.random() * 30),
-                    elo: 800 + Math.floor(Math.random() * 1200),
-                    wins: Math.floor(Math.random() * 50) + 10,
-                    losses: Math.floor(Math.random() * 30),
-                    createdAt: new Date(Date.now() - Math.random() * 10000000000).toISOString()
+        return `
+            <div class="team-card glass-hover">
+                <div class="team-card-header">
+                    <div class="team-card-logo" style="${bgStyle}">${logoContent}</div>
+                    <div class="team-card-info">
+                        <h3>${escapeHtml(team.name)}</h3>
+                        <p>Win Rate: ${team.winRate || 'N/A'}%</p>
+                    </div>
+                </div>
+                <div class="team-card-players">
+                    ${team.players.map(p => `
+                        <div class="team-player-badge">
+                            <strong>${p.isCaptain ? '👑 ' : ''}${escapeHtml(p.nick)}</strong>
+                            <span style="color: var(--white-50);">${escapeHtml(p.tag)}</span>
+                            <span style="color: var(--gold); font-size: 0.75rem;">${(p.trophies || 0).toLocaleString()} 🏆</span>
+                        </div>
+                    `).join('')}
+                </div>
+                <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                    <button class="btn btn-outline btn-sm" style="flex: 1; justify-content: center;" onclick="viewTeam('${team.id}')">
+                        <i class="fas fa-eye"></i> Ver
+                    </button>
+                    <button class="btn btn-danger btn-sm" style="flex: 1; justify-content: center;" onclick="deleteTeam('${team.id}')">
+                        <i class="fas fa-trash"></i> Remover
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+        // ===== TEAM MANAGEMENT =====
+        function openCreateTeamModal() {
+            if (!currentUser) {
+                showNotification('Faça login para criar uma equipe!', 'warning');
+                openModal('loginModal');
+                return;
+            }
+            
+            // Check if user already has a team
+            const existingTeam = teams.find(t => 
+                t.players.some(p => p.tag === currentUser.tag) ||
+                t.createdBy === currentUser.id
+            );
+            
+            if (existingTeam) {
+                showNotification('Você já pertence a uma equipe! Cancele a inscrição atual para criar uma nova.', 'warning');
+                return;
+            }
+            
+            resetCreateTeamForm();
+            generatePlayerRows();
+            openModal('createTeamModal');
+        }
+
+        function generatePlayerRows() {
+            const container = document.getElementById('playersContainer');
+            if (!container) return;
+            
+            const roles = ['Capitão', 'Jogador 2', 'Jogador 3'];
+            const emojis = ['⭐', '👤', '👤'];
+            
+            // Pre-fill captain with current user data
+            const captainData = currentUser ? { nick: currentUser.nick || '', tag: currentUser.tag || '' } : { nick: '', tag: '' };
+            
+            container.innerHTML = roles.map((role, i) => `
+                <div class="player-row">
+                    <span class="player-number">${emojis[i]} ${role}</span>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Nick no Brawl:</label>
+                        <input type="text" class="form-input player-nick" placeholder="Seu nick" value="${i === 0 ? escapeHtml(captainData.nick) : ''}" required>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Tag:</label>
+                        <input type="text" class="form-input player-tag" placeholder="#12345" value="${i === 0 ? escapeHtml(captainData.tag) : ''}" required pattern="#[A-Za-z0-9]+">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Troféus:</label>
+                        <input type="number" class="form-input player-trophies" placeholder="Ex: 25000" min="0" value="0">
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function handleCreateTeam(e) {
+            e.preventDefault();
+            
+            if (!currentUser) {
+                showNotification('Faça login para criar uma equipe!', 'warning');
+                return;
+            }
+            
+            const teamName = document.getElementById('teamName').value.trim();
+            
+            if (teamName.length < 3 || teamName.length > 30) {
+                document.getElementById('teamNameError').classList.add('show');
+                return;
+            }
+            
+            if (teams.some(t => t.name.toLowerCase() === teamName.toLowerCase())) {
+                showNotification('Já existe uma equipe com este nome!', 'error');
+                return;
+            }
+            
+            const playerRows = document.querySelectorAll('.player-row');
+            const players = [];
+            
+            for (let i = 0; i < playerRows.length; i++) {
+                const nick = playerRows[i].querySelector('.player-nick').value.trim();
+                const tag = playerRows[i].querySelector('.player-tag').value.trim();
+                const trophies = parseInt(playerRows[i].querySelector('.player-trophies').value) || 0;
+                
+                if (!nick || !tag) {
+                    showNotification(`Preencha os dados do ${i === 0 ? 'Capitão' : 'Jogador ' + (i+1)} corretamente.`, 'error');
+                    return;
+                }
+                
+                if (!tag.startsWith('#')) {
+                    showNotification(`A tag do ${i === 0 ? 'Capitão' : 'Jogador ' + (i+1)} deve começar com #`, 'error');
+                    return;
+                }
+                
+                players.push({
+                    number: i + 1,
+                    nick,
+                    tag: tag.toUpperCase(),
+                    trophies,
+                    isCaptain: i === 0
+                });
+            }
+            
+            const newTeam = {
+                id: Date.now().toString(),
+                name: teamName,
+                logo: uploadedLogoData || null,
+                players,
+                winRate: 50,
+                elo: 1000,
+                wins: 0,
+                losses: 0,
+                createdAt: new Date().toISOString(),
+                createdBy: currentUser.id
+            };
+            
+            teams.unshift(newTeam);
+            saveTeams();
+            
+            // Update current user's team
+            currentUser.teamId = newTeam.id;
+            saveCurrentUser();
+            
+            closeModal('createTeamModal');
+            renderAllContent();
+            showNotification(`Equipe "${teamName}" criada com sucesso! 🎉`, 'success');
+            showSection('teams');
+        }
+
+        function viewTeam(teamId) {
+            const team = teams.find(t => t.id === teamId) || 
+                        generateRankingData().find(t => t.id === teamId);
+            if (!team) {
+                showNotification('Equipe não encontrada!', 'error');
+                return;
+            }
+            
+            const header = document.getElementById('viewTeamHeader');
+            const body = document.getElementById('viewTeamBody');
+            
+            const logoContent = team.logo 
+                ? `<img src="${team.logo}" alt="" style="width:100px;height:100px;border-radius:50%;object-fit:cover;border:3px solid var(--gold);">`
+                : `<div class="team-logo-placeholder" style="background:linear-gradient(135deg, var(--gold), var(--gold-dark));width:100px;height:100px;margin:0 auto;">
+                    <i class="fas fa-shield-halved"></i>
+                </div>`;
+            
+            header.innerHTML = `
+                ${logoContent}
+                <h2 class="modal-title" style="margin-top: 1rem;">${escapeHtml(team.name)}</h2>
+                <p class="modal-subtitle">Win Rate: ${team.winRate || 'N/A'}% | ELO: ${team.elo || 'N/A'}</p>
+            `;
+            
+            body.innerHTML = `
+                <h4 style="color: var(--gold); margin-bottom: 1rem;"><i class="fas fa-users"></i> Jogadores</h4>
+                <div style="display: grid; gap: 0.8rem;">
+                    ${team.players.map(p => `
+                        <div style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: var(--white-10); border-radius: 0.75rem;">
+                            <div style="width: 50px; height: 50px; border-radius: 50%; background: var(--gold-10); display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
+                                ${p.isCaptain ? '👑' : '🎮'}
+                            </div>
+                            <div>
+                                <strong>${escapeHtml(p.nick)}</strong>
+                                <span style="color: var(--white-50); margin-left: 0.5rem;">${escapeHtml(p.tag)}</span>
+                                <p style="color: var(--gold); font-size: 0.85rem;">${(p.trophies || 0).toLocaleString()} Troféus</p>
+                            </div>
+                            ${p.isCaptain ? '<span style="background: var(--gold); color: var(--black); padding: 0.2rem 0.6rem; border-radius: 1rem; font-size: 0.75rem; margin-left: auto;">Capitão</span>' : ''}
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            
+            openModal('viewTeamModal');
+        }
+
+        function deleteTeam(teamId) {
+            const team = teams.find(t => t.id === teamId);
+            if (!team) return;
+            
+            if (confirm(`Tem certeza que deseja remover a equipe "${team.name}"?`)) {
+                // Remove from tournament subscriptions
+                tournaments.forEach(t => {
+                    t.subscribedTeams = t.subscribedTeams.filter(id => id !== teamId);
+                });
+                saveTournaments();
+                
+                teams = teams.filter(t => t.id !== teamId);
+                saveTeams();
+                renderAllContent();
+                showNotification(`Equipe "${team.name}" removida.`, 'info');
+            }
+        }
+
+        function saveTeams() {
+            localStorage.setItem('novaBrawlTeams', JSON.stringify(teams));
+        }
+
+        // ===== LOGO UPLOAD =====
+        function handleLogoUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            if (!validTypes.includes(file.type)) {
+                document.getElementById('logoError').textContent = 'Formato não suportado.';
+                document.getElementById('logoError').classList.add('show');
+                return;
+            }
+            
+            if (file.size > 2 * 1024 * 1024) {
+                document.getElementById('logoError').classList.add('show');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('uploadPreview').src = e.target.result;
+                document.getElementById('uploadPreview').classList.add('show');
+                document.getElementById('uploadPlaceholder').classList.add('hidden');
+                uploadedLogoData = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function resetCreateTeamForm() {
+            const form = document.getElementById('createTeamForm');
+            if (form) form.reset();
+            const preview = document.getElementById('uploadPreview');
+            const placeholder = document.getElementById('uploadPlaceholder');
+            if (preview) { preview.classList.remove('show'); preview.src = ''; }
+            if (placeholder) placeholder.classList.remove('hidden');
+            uploadedLogoData = null;
+            document.querySelectorAll('.error-message').forEach(el => el.classList.remove('show'));
+            document.querySelectorAll('.form-input.error').forEach(el => el.classList.remove('error'));
+            generatePlayerRows();
+        }
+
+        // ===== UTILITY FUNCTIONS =====
+        function showNotification(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            const icons = {
+                info: 'fa-info-circle',
+                success: 'fa-check-circle',
+                warning: 'fa-exclamation-triangle',
+                error: 'fa-times-circle'
+            };
+            
+            toast.innerHTML = `
+                <i class="fas ${icons[type] || icons.info}"></i>
+                <span class="toast-message">${message}</span>
+                <button class="toast-close" onclick="this.parentElement.remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            
+            container.appendChild(toast);
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.style.opacity = '0';
+                    toast.style.transition = 'opacity 0.3s ease';
+                    setTimeout(() => toast.remove(), 300);
+                }
+            }, 5000);
+        }
+
+        function openModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.add('active');
+                document.body.style.overflow = 'hidden';
+                if (modalId === 'createTeamModal') generatePlayerRows();
+            }
+        }
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('active');
+            document.getElementById('sidebarOverlay').classList.toggle('active');
+        }
+
+function showSection(sectionName) {
+    const sections = ['home', 'tournaments', 'teams', 'rankings', 'news', 'chat', 'support'];
+    
+    sections.forEach(s => {
+        const el = document.getElementById(s + 'Section');
+        if (el) {
+            if (s === sectionName) {
+                el.style.display = 'block';
+                // Força reflow para animação
+                el.offsetHeight;
+                el.style.animation = 'none';
+                el.offsetHeight;
+                el.style.animation = 'sectionFadeIn 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards';
+            } else {
+                el.style.display = 'none';
+                el.style.animation = '';
+            }
+        }
+    });
+    
+    document.querySelectorAll('.nav-links a, .sidebar-menu a').forEach(link => {
+        link.classList.remove('active');
+        if (link.dataset.section === sectionName) link.classList.add('active');
+    });
+    
+    if (sectionName === 'teams') renderTeamsGrid();
+    if (sectionName === 'rankings') renderRankings();
+    if (sectionName === 'tournaments') renderTournaments();
+    if (sectionName === 'support') renderSupportContent();
+    if (sectionName === 'chat') renderChatContent();
+    
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+        function getDefaultLogoIcon(index) {
+            const icons = ['fa-shield-halved', 'fa-dragon', 'fa-bolt', 'fa-fire', 'fa-skull', 'fa-crown', 'fa-ghost'];
+            return `<i class="fas ${icons[index % icons.length]}"></i>`;
+        }
+
+        function getDefaultLogoStyle(index) {
+            const gradients = [
+                'background: linear-gradient(135deg, #F6C945, #D4A833);',
+                'background: linear-gradient(135deg, #3b82f6, #1d4ed8);',
+                'background: linear-gradient(135deg, #10b981, #059669);',
+                'background: linear-gradient(135deg, #8b5cf6, #6d28d9);',
+                'background: linear-gradient(135deg, #ef4444, #dc2626);',
+                'background: linear-gradient(135deg, #f59e0b, #d97706);',
+                'background: linear-gradient(135deg, #06b6d4, #0891b2);'
+            ];
+            return gradients[index % gradients.length];
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function handleResponsive() {
+            const menuToggle = document.querySelector('.menu-toggle');
+            if (menuToggle) {
+                menuToggle.style.display = window.innerWidth <= 1024 ? 'flex' : 'none';
+            }
+        }
+
+        // ===== EVENT LISTENERS =====
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('modal-overlay')) {
+                e.target.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+            
+            // Tab clicks
+            if (e.target.classList.contains('tab')) {
+                const parent = e.target.parentElement;
+                parent.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                e.target.classList.add('active');
+                
+                if (parent.id === 'tournamentTabs') renderTournaments();
+                if (parent.id === 'rankingTabs') renderRankings();
+            }
+            
+            // Nav link clicks
+            if (e.target.closest('.nav-links a') || e.target.closest('.sidebar-menu a')) {
+                const link = e.target.closest('a');
+                if (link && link.dataset.section) {
+                    e.preventDefault();
+                    showSection(link.dataset.section);
+                    if (window.innerWidth <= 1024) toggleSidebar();
+                }
+            }
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal-overlay.active').forEach(modal => {
+                    modal.classList.remove('active');
+                    document.body.style.overflow = '';
+                });
+                if (document.getElementById('sidebar').classList.contains('active')) toggleSidebar();
+            }
+        });
+
+        // Drag and drop for upload
+        document.addEventListener('DOMContentLoaded', function() {
+            const uploadArea = document.getElementById('uploadArea');
+            if (uploadArea) {
+                uploadArea.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    this.classList.add('drag-over');
+                });
+                uploadArea.addEventListener('dragleave', function() {
+                    this.classList.remove('drag-over');
+                });
+                uploadArea.addEventListener('drop', function(e) {
+                    e.preventDefault();
+                    this.classList.remove('drag-over');
+                    const file = e.dataTransfer.files[0];
+                    if (file) {
+                        const input = document.getElementById('teamLogo');
+                        const dt = new DataTransfer();
+                        dt.items.add(file);
+                        input.files = dt.files;
+                        handleLogoUpload({ target: { files: dt.files } });
+                    }
                 });
             }
         });
 
-        allTeams.forEach(t => {
-            if (!t.elo) t.elo = 800 + Math.floor(Math.random() * 1200);
-            if (!t.wins) t.wins = Math.floor(Math.random() * 50) + 10;
-            if (!t.losses) t.losses = Math.floor(Math.random() * 30);
-            if (!t.winRate) t.winRate = Math.round((t.wins / (t.wins + t.losses)) * 100);
-        });
+        window.addEventListener('resize', handleResponsive);
 
-        allTeams.sort((a, b) => (b.elo || 0) - (a.elo || 0));
-        
-        return allTeams.map((t, i) => ({
-            ...t, rank: i + 1,
-            trend: Math.random() > 0.5 ? 'up' : (Math.random() > 0.5 ? 'down' : 'same'),
-            trendValue: Math.floor(Math.random() * 5) + 1
-        }));
-    }
-
-    function getEloLevel(elo) {
-        if (elo >= 1800) return { name: 'Mestre', class: 'elo-master' };
-        if (elo >= 1500) return { name: 'Diamante', class: 'elo-diamond' };
-        if (elo >= 1200) return { name: 'Ouro', class: 'elo-gold' };
-        return { name: 'Prata', class: 'elo-silver' };
-    }
-
-    // ===== USER MANAGEMENT =====
-    function saveCurrentUser() {
-        localStorage.setItem('novaBrawlCurrentUser', JSON.stringify(currentUser));
-    }
-
-    function handleRegister(e) {
-        e.preventDefault();
-        const name = document.getElementById('regName').value.trim();
-        const nick = document.getElementById('regNick').value.trim();
-        const tag = document.getElementById('regTag').value.trim();
-        const email = document.getElementById('regEmail').value.trim();
-        const password = document.getElementById('regPassword').value;
-        const confirmPassword = document.getElementById('regConfirmPassword').value;
-        
-        if (password !== confirmPassword) { showNotification('As senhas não coincidem!', 'error'); return; }
-        if (users.find(u => u.email === email)) { showNotification('Este e-mail já está cadastrado!', 'error'); return; }
-        if (!tag.startsWith('#')) { showNotification('A tag do Brawl Stars deve começar com #', 'error'); return; }
-        
-        const newUser = { id: Date.now().toString(), name, nick, tag: tag.toUpperCase(), email, password, createdAt: new Date().toISOString(), teamId: null };
-        users.push(newUser);
-        saveData();
-        currentUser = { ...newUser }; delete currentUser.password;
-        saveCurrentUser();
-        closeModal('registerModal'); updateUI();
-        showNotification(`Conta criada com sucesso! Bem-vindo, ${name}!`, 'success');
-    }
-
-    function handleLogin(e) {
-        e.preventDefault();
-        const email = document.getElementById('loginEmail').value.trim();
-        const password = document.getElementById('loginPassword').value;
-        const rememberMe = document.getElementById('rememberMe').checked;
-        const user = users.find(u => u.email === email && u.password === password);
-        if (!user) { showNotification('E-mail ou senha incorretos!', 'error'); return; }
-        currentUser = { ...user }; delete currentUser.password;
-        if (rememberMe) saveCurrentUser(); else sessionStorage.setItem('novaBrawlCurrentUser', JSON.stringify(currentUser));
-        closeModal('loginModal'); updateUI();
-        showNotification(`Bem-vindo de volta, ${user.name}!`, 'success');
-    }
-
-    function handleLogout() {
-        currentUser = null;
-        localStorage.removeItem('novaBrawlCurrentUser');
-        sessionStorage.removeItem('novaBrawlCurrentUser');
-        updateUI();
-        showNotification('Você saiu da sua conta.', 'info');
-        showSection('home');
-    }
-
-    function showRegisterForm() { closeModal('loginModal'); openModal('registerModal'); }
-    function showLoginForm() { closeModal('registerModal'); openModal('loginModal'); }
-    function handleHeroLogin() { if (currentUser) showSection('tournaments'); else openModal('loginModal'); }
-
-    function updateUI() {
-        const headerActions = document.getElementById('headerActions');
-        const heroLoginBtn = document.getElementById('heroLoginBtn');
-        
-        if (currentUser) {
-            headerActions.innerHTML = `
-                <div style="position: relative;">
-                    <button class="icon-btn" onclick="showNotification('Você tem notificações', 'info')"><i class="fas fa-bell"></i><span class="badge">3</span></button>
-                </div>
-                <div class="dropdown">
-                    <div class="user-avatar" onclick="toggleDropdown()" title="${escapeHtml(currentUser.name)}">${currentUser.name.charAt(0).toUpperCase()}</div>
-                    <div class="dropdown-menu" id="userDropdown">
-                        <a onclick="showSection('teams'); closeDropdown();"><i class="fas fa-users"></i> Minhas Equipes</a>
-                        <a onclick="showSection('tournaments'); closeDropdown();"><i class="fas fa-trophy"></i> Campeonatos</a>
-                        <a onclick="showSection('support'); closeDropdown();"><i class="fas fa-headset"></i> Suporte</a>
-                        <hr style="border-color: var(--white-10); margin: 0.5rem 0;">
-                        <a onclick="handleLogout(); closeDropdown();"><i class="fas fa-sign-out-alt"></i> Sair</a>
-                    </div>
-                </div>
-                <button class="icon-btn menu-toggle" onclick="toggleSidebar()" style="display: none;"><i class="fas fa-bars"></i></button>`;
-            if (heroLoginBtn) heroLoginBtn.innerHTML = '<i class="fas fa-trophy"></i> Ver Campeonatos';
-        } else {
-            headerActions.innerHTML = `
-                <div style="position: relative;"><button class="icon-btn" onclick="showNotification('Faça login para ver notificações', 'warning')"><i class="fas fa-bell"></i></button></div>
-                <button class="btn btn-primary" onclick="openModal('loginModal')"><i class="fas fa-sign-in-alt"></i> Entrar</button>
-                <button class="icon-btn menu-toggle" onclick="toggleSidebar()" style="display: none;"><i class="fas fa-bars"></i></button>`;
-            if (heroLoginBtn) heroLoginBtn.innerHTML = '<i class="fas fa-users"></i> Entrar na Comunidade';
-        }
-        handleResponsive(); renderAllContent();
-    }
-
-    function toggleDropdown() { const d = document.getElementById('userDropdown'); if (d) d.classList.toggle('active'); }
-    function closeDropdown() { const d = document.getElementById('userDropdown'); if (d) d.classList.remove('active'); }
-    document.addEventListener('click', function(e) { if (!e.target.closest('.dropdown')) closeDropdown(); });
-
-    // ===== TOURNAMENT SUBSCRIPTION =====
-    function subscribeToTournament() {
-        if (!currentUser) { showNotification('Faça login para se inscrever em campeonatos!', 'warning'); openModal('loginModal'); return; }
-        const userTeam = teams.find(t => t.players.some(p => p.tag === currentUser.tag) || t.createdBy === currentUser.id);
-        if (!userTeam) { showNotification('Você precisa ter uma equipe registrada para se inscrever! Crie uma equipe primeiro.', 'warning'); setTimeout(() => showSection('teams'), 1500); return; }
-        const activeTournament = tournaments.find(t => t.status === 'active');
-        if (!activeTournament) { showNotification('Nenhum campeonato ativo no momento.', 'info'); return; }
-        if (activeTournament.subscribedTeams.includes(userTeam.id)) { showNotification('Sua equipe já está inscrita neste campeonato!', 'info'); return; }
-        if (activeTournament.subscribedTeams.length >= activeTournament.maxTeams) { showNotification('Este campeonato já atingiu o número máximo de equipes!', 'error'); return; }
-        activeTournament.subscribedTeams.push(userTeam.id);
-        saveData();
-        showNotification(`Equipe "${userTeam.name}" inscrita com sucesso na ${activeTournament.name}! 🎉`, 'success');
-    }
-
-    function subscribeToTournamentById(tournamentId) {
-        if (!currentUser) { showNotification('Faça login para se inscrever!', 'warning'); openModal('loginModal'); return; }
-        const userTeam = teams.find(t => t.players.some(p => p.tag === currentUser.tag) || t.createdBy === currentUser.id);
-        if (!userTeam) { showNotification('Você precisa ter uma equipe registrada para se inscrever!', 'warning'); return; }
-        const tournament = tournaments.find(t => t.id === tournamentId);
-        if (!tournament) return;
-        if (tournament.subscribedTeams.includes(userTeam.id)) { showNotification('Sua equipe já está inscrita!', 'info'); return; }
-        if (tournament.subscribedTeams.length >= tournament.maxTeams) { showNotification('Campeonato lotado!', 'error'); return; }
-        tournament.subscribedTeams.push(userTeam.id);
-        saveData();
-        showNotification(`Equipe "${userTeam.name}" inscrita na ${tournament.name}! 🎉`, 'success');
-        renderTournaments();
-    }
-
-    function unsubscribeFromTournament(tournamentId) {
-        if (!currentUser) return;
-        const userTeam = teams.find(t => t.players.some(p => p.tag === currentUser.tag) || t.createdBy === currentUser.id);
-        if (!userTeam) return;
-        const tournament = tournaments.find(t => t.id === tournamentId);
-        if (!tournament) return;
-        tournament.subscribedTeams = tournament.subscribedTeams.filter(id => id !== userTeam.id);
-        saveData();
-        showNotification('Inscrição cancelada.', 'info');
-        renderTournaments();
-    }
-
-    // ===== SUPPORT SYSTEM =====
-    function openNewTicket() {
-        if (!currentUser) { showNotification('Faça login para abrir um ticket de suporte!', 'warning'); openModal('loginModal'); return; }
-        const category = prompt('Categoria do problema:\n1 - Problema Técnico\n2 - Dúvida sobre Campeonatos\n3 - Denúncia\n4 - Sugestão\n5 - Outro\n\nDigite o número:');
-        const categories = ['', 'Problema Técnico', 'Dúvida sobre Campeonatos', 'Denúncia', 'Sugestão', 'Outro'];
-        const categoryName = categories[parseInt(category)] || 'Outro';
-        const subject = prompt('Assunto do ticket:'); if (!subject) return;
-        const description = prompt('Descreva seu problema em detalhes:'); if (!description) return;
-        
-        const ticket = {
-            id: 'TKT-' + Date.now().toString().slice(-6), userId: currentUser.id, userName: currentUser.name,
-            category: categoryName, subject, description, status: 'open', createdAt: new Date().toISOString(),
-            messages: [
-                { from: 'user', text: description, time: new Date().toISOString() },
-                { from: 'support', text: 'Olá! Recebemos seu ticket. Nossa equipe irá analisar e responder em breve. Enquanto isso, você pode enviar mais informações por aqui.', time: new Date().toISOString() }
-            ]
-        };
-        supportTickets.unshift(ticket);
-        saveData();
-        showNotification(`Ticket #${ticket.id} criado com sucesso!`, 'success');
-        renderSupportContent();
-    }
-
-    function openSupportChat(ticketId) {
-        const ticket = supportTickets.find(t => t.id === ticketId);
-        if (!ticket) return;
-        document.getElementById('supportTicketId').textContent = ticket.id;
-        document.getElementById('supportChatTitle').textContent = `Ticket #${ticket.id} - ${ticket.subject}`;
-        const messagesContainer = document.getElementById('supportChatMessages');
-        messagesContainer.innerHTML = ticket.messages.map(m => `
-            <div class="chat-message ${m.from}"><strong>${m.from === 'user' ? 'Você' : 'Suporte Nova Brawl'}</strong><p>${escapeHtml(m.text)}</p><div class="msg-time">${new Date(m.time).toLocaleString('pt-BR')}</div></div>
-        `).join('');
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        document.getElementById('supportChatInput').dataset.ticketId = ticketId;
-        openModal('supportChatModal');
-    }
-
-    function sendSupportMessage() {
-        const input = document.getElementById('supportChatInput');
-        const ticketId = input.dataset.ticketId;
-        const text = input.value.trim();
-        if (!text || !ticketId) return;
-        const ticket = supportTickets.find(t => t.id === ticketId);
-        if (!ticket) return;
-        ticket.messages.push({ from: 'user', text, time: new Date().toISOString() });
-        saveData();
-        setTimeout(() => {
-            ticket.messages.push({ from: 'support', text: 'Obrigado pela informação adicional! Nossa equipe continua analisando seu caso.', time: new Date().toISOString() });
-            saveData();
-            if (document.getElementById('supportChatModal').classList.contains('active')) openSupportChat(ticketId);
-        }, 2000);
-        input.value = '';
-        openSupportChat(ticketId);
-    }
-
-    function closeTicket(ticketId) {
-        if (!confirm('Tem certeza que deseja fechar este ticket?')) return;
-        const ticket = supportTickets.find(t => t.id === ticketId);
-        if (!ticket) return;
-        ticket.status = 'closed';
-        ticket.messages.push({ from: 'support', text: 'Ticket fechado. Obrigado pelo contato!', time: new Date().toISOString() });
-        saveData();
-        showNotification('Ticket fechado.', 'info');
-        renderSupportContent();
-    }
-
-    // ===== CONTENT RENDERING =====
-    function renderAllContent() { renderStats(); renderFeaturedTeams(); renderNews(); renderTournaments(); renderTeamsGrid(); renderRankings(); renderSupportContent(); renderChatContent(); }
-
-    function renderStats() {
-        const container = document.getElementById('statsGrid'); if (!container) return;
-        const totalTeamsCount = teams.length + 4;
-        const totalPlayers = currentUser ? users.length + 12500 : 12500;
-        const totalTournaments = tournaments.length;
-        const totalPrize = 'R$ 25k';
-        container.innerHTML = `
-            <div class="stat-card glass-hover animate-fadeIn"><div class="stat-icon gold"><i class="fas fa-trophy"></i></div><div class="stat-value">${totalTeamsCount}</div><div class="stat-label">Equipes Registradas</div></div>
-            <div class="stat-card glass-hover animate-fadeIn" style="animation-delay: 0.1s;"><div class="stat-icon blue"><i class="fas fa-users"></i></div><div class="stat-value">${(totalPlayers / 1000).toFixed(1)}k</div><div class="stat-label">Jogadores Ativos</div></div>
-            <div class="stat-card glass-hover animate-fadeIn" style="animation-delay: 0.2s;"><div class="stat-icon green"><i class="fas fa-calendar-check"></i></div><div class="stat-value">${totalTournaments}</div><div class="stat-label">Campeonatos</div></div>
-            <div class="stat-card glass-hover animate-fadeIn" style="animation-delay: 0.3s;"><div class="stat-icon purple"><i class="fas fa-star"></i></div><div class="stat-value">${totalPrize}</div><div class="stat-label">Em Premiações</div></div>`;
-    }
-
-    function renderFeaturedTeams() {
-        const container = document.getElementById('featuredTeams'); if (!container) return;
-        const rankingData = generateRankingData();
-        const topTeams = rankingData.slice(0, 4);
-        container.innerHTML = topTeams.map((team, i) => {
-            const logoContent = team.logo ? `<img src="${team.logo}" alt="${team.name}">` : getDefaultLogoIcon(i);
-            const bgStyle = team.logo ? '' : getDefaultLogoStyle(i);
-            return `<div class="card glass-hover" style="text-align: center; padding: 2rem; cursor: pointer;" onclick="viewTeam('${team.id}')"><div class="team-logo-placeholder" style="${bgStyle}">${logoContent}</div><h3>${escapeHtml(team.name)}</h3><p style="color: var(--white-50);">Win Rate: ${team.winRate}%</p><p style="color: var(--gold); margin-top: 0.5rem;">★ Top ${team.rank} Ranking</p></div>`;
-        }).join('');
-    }
-
-    function renderNews() {
-        const newsContainer = document.getElementById('newsGrid');
-        const allNewsContainer = document.getElementById('allNewsGrid');
-        const newsItems = [
-            { title: 'Nova Temporada Chegando!', text: 'Prepare-se para a Temporada 5 com novos mapas, brawlers e premiações recordes.', icon: 'fa-trophy', time: '2 horas atrás' },
-            { title: 'Resultados da Copa Nova', text: 'Confira os vencedores da última copa e os destaques da competição.', icon: 'fa-medal', time: '5 horas atrás' },
-            { title: 'Novas Recompensas', text: 'Sistema de recompensas atualizado com novos badges e moedas da comunidade.', icon: 'fa-gift', time: '8 horas atrás' },
-            { title: 'Atualização de Balanceamento', text: 'Confira as mudanças de balanceamento dos brawlers para a nova temporada.', icon: 'fa-balance-scale', time: '1 dia atrás' },
-            { title: 'Entrevista com Campeões', text: 'Conversamos com os vencedores da última temporada sobre suas estratégias.', icon: 'fa-microphone', time: '2 dias atrás' },
-            { title: 'Novo Modo de Jogo', text: 'Rumores indicam um novo modo de jogo chegando na próxima atualização.', icon: 'fa-gamepad', time: '3 dias atrás' }
-        ];
-        const newsHTML = newsItems.map(n => `<div class="card glass-hover"><div class="card-image"><i class="fas ${n.icon}"></i></div><div class="card-body"><h3 class="card-title">${n.title}</h3><p class="card-text">${n.text}</p><div class="card-footer"><span><i class="far fa-clock"></i> ${n.time}</span><span style="color: var(--gold); cursor: pointer;">Leia mais →</span></div></div></div>`).join('');
-        if (newsContainer) newsContainer.innerHTML = newsHTML.slice(0, 3);
-        if (allNewsContainer) allNewsContainer.innerHTML = newsHTML;
-    }
-
-    function renderTournaments() {
-        const container = document.getElementById('tournamentsContent'); if (!container) return;
-        const activeTab = document.querySelector('#tournamentTabs .tab.active');
-        const tab = activeTab ? activeTab.dataset.tab : 'active';
-        let filteredTournaments = tournaments;
-        
-        if (tab === 'subscribed') {
-            if (!currentUser) { container.innerHTML = `<div class="empty-state"><i class="fas fa-lock"></i><h3>Faça login para ver suas inscrições</h3><button class="btn btn-primary mt-4" onclick="openModal('loginModal')"><i class="fas fa-sign-in-alt"></i> Entrar</button></div>`; return; }
-            const userTeam = teams.find(t => t.players.some(p => p.tag === currentUser.tag) || t.createdBy === currentUser.id);
-            filteredTournaments = tournaments.filter(t => userTeam && t.subscribedTeams.includes(userTeam.id));
-        } else {
-            filteredTournaments = tournaments.filter(t => t.status === tab);
-        }
-        
-        if (filteredTournaments.length === 0) { container.innerHTML = `<div class="empty-state"><i class="fas fa-calendar-times"></i><h3>Nenhum campeonato encontrado</h3><p>${tab === 'subscribed' ? 'Sua equipe não está inscrita em nenhum campeonato.' : 'Volte mais tarde para conferir novos campeonatos.'}</p></div>`; return; }
-        
-        const userTeam = currentUser ? teams.find(t => t.players.some(p => p.tag === currentUser.tag) || t.createdBy === currentUser.id) : null;
-        
-        container.innerHTML = filteredTournaments.map(t => {
-            const isSubscribed = userTeam && t.subscribedTeams.includes(userTeam.id);
-            const spotsLeft = t.maxTeams - t.subscribedTeams.length;
-            const statusLabels = { active: { text: 'Ativo', class: 'status-open' }, upcoming: { text: 'Em breve', class: 'status-progress' }, past: { text: 'Encerrado', class: 'status-closed' } };
-            const status = statusLabels[t.status] || statusLabels.upcoming;
-            return `<div class="countdown-section" style="margin: 1rem 0;"><div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 1rem;"><div><span class="ticket-status ${status.class}">${status.text}</span><h3 style="color: var(--gold); margin-top: 0.8rem;">${escapeHtml(t.name)}</h3><p style="color: var(--white-70);">Modo: ${t.mode} | Premiação: ${t.prize}</p><p style="color: var(--white-50); font-size: 0.85rem;">Data: ${new Date(t.date).toLocaleDateString('pt-BR')} às ${new Date(t.date).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}</p><p style="color: var(--white-50); font-size: 0.85rem;">Vagas: ${t.subscribedTeams.length}/${t.maxTeams} (${spotsLeft} disponíveis)</p><p style="color: var(--white-70); margin-top: 0.5rem;">${t.description}</p></div><div>${t.status === 'past' ? `<button class="btn btn-outline btn-sm" disabled><i class="fas fa-lock"></i> Encerrado</button>` : isSubscribed ? `<button class="btn btn-danger btn-sm" onclick="unsubscribeFromTournament('${t.id}')"><i class="fas fa-times-circle"></i> Cancelar Inscrição</button>` : `<button class="btn btn-primary btn-sm" onclick="subscribeToTournamentById('${t.id}')" ${spotsLeft <= 0 ? 'disabled' : ''}><i class="fas fa-check-circle"></i> ${spotsLeft <= 0 ? 'Lotado' : 'Inscrever Equipe'}</button>`}</div></div></div>`;
-        }).join('');
-    }
-
-    function renderRankings() {
-        const container = document.getElementById('rankingBody'); if (!container) return;
-        const rankingData = generateRankingData();
-        container.innerHTML = rankingData.map((team, i) => {
-            const eloLevel = getEloLevel(team.elo);
-            const rankClass = i < 3 ? `rank-${i+1}` : 'rank-other';
-            const trendIcon = team.trend === 'up' ? '↑' : (team.trend === 'down' ? '↓' : '–');
-            const trendClass = team.trend === 'up' ? 'rank-up' : (team.trend === 'down' ? 'rank-down' : 'rank-same');
-            return `<tr><td><div class="rank-badge ${rankClass}">#${team.rank}</div></td><td><div style="display: flex; align-items: center; gap: 0.8rem;"><div class="team-card-logo" style="width: 40px; height: 40px; ${getDefaultLogoStyle(i)}">${team.logo ? `<img src="${team.logo}" alt="" style="width:100%;height:100%;object-fit:cover;">` : getDefaultLogoIcon(i)}</div><strong>${escapeHtml(team.name)}</strong></div></td><td><strong>${team.elo}</strong></td><td><span class="elo-badge ${eloLevel.class}">${eloLevel.name}</span></td><td>${team.wins}V / ${team.losses}D</td><td>${team.winRate}%<div class="progress-bar"><div class="progress-fill progress-gold" style="width: ${team.winRate}%;"></div></div></td><td><span class="rank-change ${trendClass}">${trendIcon} ${team.trendValue}</span></td></tr>`;
-        }).join('');
-    }
-
-    function renderSupportContent() {
-        const container = document.getElementById('supportContent'); if (!container) return;
-        if (!currentUser) { container.innerHTML = `<div class="empty-state"><i class="fas fa-lock"></i><h3>Faça login para acessar o suporte</h3><p>Você precisa estar logado para abrir tickets de suporte.</p><button class="btn btn-primary mt-4" onclick="openModal('loginModal')"><i class="fas fa-sign-in-alt"></i> Entrar</button></div>`; return; }
-        const myTickets = supportTickets.filter(t => t.userId === currentUser.id);
-        container.innerHTML = `<div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;"><p style="color: var(--white-70);">Bem-vindo à Central de Suporte, <strong class="text-gold">${escapeHtml(currentUser.name)}</strong>!</p><button class="btn btn-primary" onclick="openNewTicket()"><i class="fas fa-plus-circle"></i> Abrir Novo Ticket</button></div><h3 style="color: var(--gold); margin-bottom: 1rem;"><i class="fas fa-ticket-alt"></i> Meus Tickets (${myTickets.length})</h3>${myTickets.length === 0 ? `<div class="empty-state"><i class="fas fa-inbox"></i><h3>Nenhum ticket aberto</h3><p>Você ainda não abriu nenhum ticket de suporte.</p></div>` : myTickets.map(t => { const st = { open: { text: 'Aberto', class: 'status-open' }, 'in-progress': { text: 'Em andamento', class: 'status-progress' }, closed: { text: 'Fechado', class: 'status-closed' } }; const s = st[t.status] || st.open; return `<div class="ticket-card"><div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 1rem;"><div><span class="ticket-status ${s.class}">${s.text}</span><strong style="margin-left: 0.5rem;">#${t.id}</strong><h4 style="margin-top: 0.5rem;">${escapeHtml(t.subject)}</h4><p style="color: var(--white-50); font-size: 0.85rem;">Categoria: ${t.category}</p><p style="color: var(--white-30); font-size: 0.8rem;">Criado em ${new Date(t.createdAt).toLocaleString('pt-BR')}</p><p style="color: var(--white-30); font-size: 0.8rem;">${t.messages.length} mensagens</p></div><div style="display: flex; gap: 0.5rem;"><button class="btn btn-outline btn-sm" onclick="openSupportChat('${t.id}')"><i class="fas fa-comments"></i> Conversar</button>${t.status !== 'closed' ? `<button class="btn btn-danger btn-sm" onclick="closeTicket('${t.id}')"><i class="fas fa-times"></i> Fechar</button>` : ''}</div></div></div>`; }).join('')}<div class="glass" style="padding: 2rem; border-radius: 1rem; margin-top: 2rem;"><h3 style="color: var(--gold); margin-bottom: 1rem;"><i class="fas fa-question-circle"></i> Perguntas Frequentes</h3><div style="display: grid; gap: 1rem;"><div class="glass-hover" style="padding: 1rem; border-radius: 0.75rem;"><strong>Como criar uma equipe?</strong><p style="color: var(--white-50);">Vá até a seção "Equipes" e clique em "Criar Nova Equipe". Preencha os dados dos 3 jogadores.</p></div><div class="glass-hover" style="padding: 1rem; border-radius: 0.75rem;"><strong>Como me inscrever em campeonatos?</strong><p style="color: var(--white-50);">É necessário ter uma equipe registrada. Depois, vá em "Campeonatos" e clique em "Inscrever Equipe".</p></div><div class="glass-hover" style="padding: 1rem; border-radius: 0.75rem;"><strong>Como funciona o ranking?</strong><p style="color: var(--white-50);">O ranking é baseado no sistema ELO. Ganhe pontos participando de campeonatos e vencendo partidas.</p></div></div></div>`;
-    }
-
-    function renderChatContent() {
-        const container = document.getElementById('chatContent'); if (!container) return;
-        if (!currentUser) { container.innerHTML = `<div class="empty-state"><i class="fas fa-lock"></i><h3>Faça login para acessar o chat</h3><p>Converse com outros jogadores em tempo real.</p><button class="btn btn-primary mt-4" onclick="openModal('loginModal')"><i class="fas fa-sign-in-alt"></i> Entrar</button></div>`; return; }
-        container.innerHTML = `<div class="glass" style="padding: 1.5rem; border-radius: 1rem; text-align: center;"><i class="fas fa-comments" style="font-size: 3rem; color: var(--gold); margin-bottom: 1rem;"></i><h3>Chat da Comunidade</h3><p style="color: var(--white-50);">Bem-vindo, <strong class="text-gold">${escapeHtml(currentUser.name)}</strong>!</p><p style="color: var(--white-30); margin-top: 1rem;">O chat ao vivo estará disponível em breve. Enquanto isso, use o suporte para se comunicar!</p></div>`;
-    }
-
-    function renderTeamsGrid() {
-        const container = document.getElementById('teamsGrid'); const emptyState = document.getElementById('emptyTeams');
-        if (!container) return;
-        if (teams.length === 0) { container.innerHTML = ''; if (emptyState) emptyState.style.display = 'block'; return; }
-        if (emptyState) emptyState.style.display = 'none';
-        container.innerHTML = teams.map((team, i) => {
-            const logoContent = team.logo ? `<img src="${team.logo}" alt="${team.name}" style="width:100%;height:100%;object-fit:cover;">` : getDefaultLogoIcon(i);
-            const bgStyle = team.logo ? '' : getDefaultLogoStyle(i);
-            return `<div class="team-card glass-hover"><div class="team-card-header"><div class="team-card-logo" style="${bgStyle}">${logoContent}</div><div class="team-card-info"><h3>${escapeHtml(team.name)}</h3><p>Win Rate: ${team.winRate || 'N/A'}%</p></div></div><div class="team-card-players">${team.players.map(p => `<div class="team-player-badge"><strong>${p.isCaptain ? '👑 ' : ''}${escapeHtml(p.nick)}</strong><span style="color: var(--white-50);">${escapeHtml(p.tag)}</span><span style="color: var(--gold); font-size: 0.75rem;">${(p.trophies || 0).toLocaleString()} 🏆</span></div>`).join('')}</div><div style="display: flex; gap: 0.5rem; margin-top: 1rem;"><button class="btn btn-outline btn-sm" style="flex: 1; justify-content: center;" onclick="viewTeam('${team.id}')"><i class="fas fa-eye"></i> Ver</button><button class="btn btn-danger btn-sm" style="flex: 1; justify-content: center;" onclick="deleteTeam('${team.id}')"><i class="fas fa-trash"></i> Remover</button></div></div>`;
-        }).join('');
-    }
-
-    // ===== TEAM MANAGEMENT =====
-    function openCreateTeamModal() {
-        if (!currentUser) { showNotification('Faça login para criar uma equipe!', 'warning'); openModal('loginModal'); return; }
-        const existingTeam = teams.find(t => t.players.some(p => p.tag === currentUser.tag) || t.createdBy === currentUser.id);
-        if (existingTeam) { showNotification('Você já pertence a uma equipe! Cancele a inscrição atual para criar uma nova.', 'warning'); return; }
-        resetCreateTeamForm(); generatePlayerRows(); openModal('createTeamModal');
-    }
-
-    function generatePlayerRows() {
-        const container = document.getElementById('playersContainer'); if (!container) return;
-        const roles = ['Capitão', 'Jogador 2', 'Jogador 3'];
-        const emojis = ['⭐', '👤', '👤'];
-        const captainData = currentUser ? { nick: currentUser.nick || '', tag: currentUser.tag || '' } : { nick: '', tag: '' };
-        container.innerHTML = roles.map((role, i) => `<div class="player-row"><span class="player-number">${emojis[i]} ${role}</span><div class="form-group" style="margin-bottom: 0;"><label class="form-label">Nick no Brawl:</label><input type="text" class="form-input player-nick" placeholder="Seu nick" value="${i === 0 ? escapeHtml(captainData.nick) : ''}" required></div><div class="form-group" style="margin-bottom: 0;"><label class="form-label">Tag:</label><input type="text" class="form-input player-tag" placeholder="#12345" value="${i === 0 ? escapeHtml(captainData.tag) : ''}" required pattern="#[A-Za-z0-9]+"></div><div class="form-group" style="margin-bottom: 0;"><label class="form-label">Troféus:</label><input type="number" class="form-input player-trophies" placeholder="Ex: 25000" min="0" value="0"></div></div>`).join('');
-    }
-
-    function handleCreateTeam(e) {
-        e.preventDefault();
-        if (!currentUser) { showNotification('Faça login para criar uma equipe!', 'warning'); return; }
-        const teamName = document.getElementById('teamName').value.trim();
-        if (teamName.length < 3 || teamName.length > 30) { document.getElementById('teamNameError').classList.add('show'); return; }
-        if (teams.some(t => t.name.toLowerCase() === teamName.toLowerCase())) { showNotification('Já existe uma equipe com este nome!', 'error'); return; }
-        const playerRows = document.querySelectorAll('.player-row');
-        const players = [];
-        for (let i = 0; i < playerRows.length; i++) {
-            const nick = playerRows[i].querySelector('.player-nick').value.trim();
-            const tag = playerRows[i].querySelector('.player-tag').value.trim();
-            const trophies = parseInt(playerRows[i].querySelector('.player-trophies').value) || 0;
-            if (!nick || !tag) { showNotification(`Preencha os dados do ${i === 0 ? 'Capitão' : 'Jogador ' + (i+1)} corretamente.`, 'error'); return; }
-            if (!tag.startsWith('#')) { showNotification(`A tag do ${i === 0 ? 'Capitão' : 'Jogador ' + (i+1)} deve começar com #`, 'error'); return; }
-            players.push({ number: i + 1, nick, tag: tag.toUpperCase(), trophies, isCaptain: i === 0 });
-        }
-        const newTeam = { id: Date.now().toString(), name: teamName, logo: uploadedLogoData || null, players, winRate: 50, elo: 1000, wins: 0, losses: 0, createdAt: new Date().toISOString(), createdBy: currentUser.id };
-        teams.unshift(newTeam);
-        saveData();
-        currentUser.teamId = newTeam.id; saveCurrentUser();
-        closeModal('createTeamModal'); renderAllContent();
-        showNotification(`Equipe "${teamName}" criada com sucesso! 🎉`, 'success');
-        showSection('teams');
-    }
-
-    function viewTeam(teamId) {
-        const team = teams.find(t => t.id === teamId) || generateRankingData().find(t => t.id === teamId);
-        if (!team) { showNotification('Equipe não encontrada!', 'error'); return; }
-        const header = document.getElementById('viewTeamHeader');
-        const body = document.getElementById('viewTeamBody');
-        const logoContent = team.logo ? `<img src="${team.logo}" alt="" style="width:100px;height:100px;border-radius:50%;object-fit:cover;border:3px solid var(--gold);">` : `<div class="team-logo-placeholder" style="background:linear-gradient(135deg, var(--gold), var(--gold-dark));width:100px;height:100px;margin:0 auto;"><i class="fas fa-shield-halved"></i></div>`;
-        header.innerHTML = `${logoContent}<h2 class="modal-title" style="margin-top: 1rem;">${escapeHtml(team.name)}</h2><p class="modal-subtitle">Win Rate: ${team.winRate || 'N/A'}% | ELO: ${team.elo || 'N/A'}</p>`;
-        body.innerHTML = `<h4 style="color: var(--gold); margin-bottom: 1rem;"><i class="fas fa-users"></i> Jogadores</h4><div style="display: grid; gap: 0.8rem;">${team.players.map(p => `<div style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: var(--white-10); border-radius: 0.75rem;"><div style="width: 50px; height: 50px; border-radius: 50%; background: var(--gold-10); display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">${p.isCaptain ? '👑' : '🎮'}</div><div><strong>${escapeHtml(p.nick)}</strong><span style="color: var(--white-50); margin-left: 0.5rem;">${escapeHtml(p.tag)}</span><p style="color: var(--gold); font-size: 0.85rem;">${(p.trophies || 0).toLocaleString()} Troféus</p></div>${p.isCaptain ? '<span style="background: var(--gold); color: var(--black); padding: 0.2rem 0.6rem; border-radius: 1rem; font-size: 0.75rem; margin-left: auto;">Capitão</span>' : ''}</div>`).join('')}</div>`;
-        openModal('viewTeamModal');
-    }
-
-    function deleteTeam(teamId) {
-        const team = teams.find(t => t.id === teamId);
-        if (!team) return;
-        if (confirm(`Tem certeza que deseja remover a equipe "${team.name}"?`)) {
-            tournaments.forEach(t => { t.subscribedTeams = t.subscribedTeams.filter(id => id !== teamId); });
-            teams = teams.filter(t => t.id !== teamId);
-            saveData();
-            renderAllContent();
-            showNotification(`Equipe "${team.name}" removida.`, 'info');
-        }
-    }
-
-    // ===== LOGO UPLOAD =====
-    function handleLogoUpload(event) {
-        const file = event.target.files[0]; if (!file) return;
-        const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-        if (!validTypes.includes(file.type)) { document.getElementById('logoError').textContent = 'Formato não suportado.'; document.getElementById('logoError').classList.add('show'); return; }
-        if (file.size > 2 * 1024 * 1024) { document.getElementById('logoError').classList.add('show'); return; }
-        const reader = new FileReader();
-        reader.onload = function(e) { document.getElementById('uploadPreview').src = e.target.result; document.getElementById('uploadPreview').classList.add('show'); document.getElementById('uploadPlaceholder').classList.add('hidden'); uploadedLogoData = e.target.result; };
-        reader.readAsDataURL(file);
-    }
-
-    function resetCreateTeamForm() {
-        const form = document.getElementById('createTeamForm'); if (form) form.reset();
-        const preview = document.getElementById('uploadPreview'); if (preview) { preview.classList.remove('show'); preview.src = ''; }
-        const placeholder = document.getElementById('uploadPlaceholder'); if (placeholder) placeholder.classList.remove('hidden');
-        uploadedLogoData = null;
-        document.querySelectorAll('.error-message').forEach(el => el.classList.remove('show'));
-        document.querySelectorAll('.form-input.error').forEach(el => el.classList.remove('error'));
-        generatePlayerRows();
-    }
-
-    // ===== UTILITY FUNCTIONS =====
-    function showNotification(message, type = 'info') {
-        const container = document.getElementById('toastContainer');
-        const toast = document.createElement('div'); toast.className = `toast ${type}`;
-        const icons = { info: 'fa-info-circle', success: 'fa-check-circle', warning: 'fa-exclamation-triangle', error: 'fa-times-circle' };
-        toast.innerHTML = `<i class="fas ${icons[type] || icons.info}"></i><span class="toast-message">${message}</span><button class="toast-close" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>`;
-        container.appendChild(toast);
-        setTimeout(() => { if (toast.parentElement) { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.3s ease'; setTimeout(() => toast.remove(), 300); } }, 5000);
-    }
-
-    function openModal(modalId) { const modal = document.getElementById(modalId); if (modal) { modal.classList.add('active'); document.body.style.overflow = 'hidden'; if (modalId === 'createTeamModal') generatePlayerRows(); } }
-    function closeModal(modalId) { const modal = document.getElementById(modalId); if (modal) { modal.classList.remove('active'); document.body.style.overflow = ''; } }
-    function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); document.getElementById('sidebarOverlay').classList.toggle('active'); }
-
-    function showSection(sectionName) {
-        const sections = ['home', 'tournaments', 'teams', 'rankings', 'news', 'chat', 'support'];
-        sections.forEach(s => {
-            const el = document.getElementById(s + 'Section');
-            if (el) {
-                if (s === sectionName) { el.style.display = 'block'; el.offsetHeight; el.style.animation = 'none'; el.offsetHeight; el.style.animation = 'sectionFadeIn 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards'; }
-                else { el.style.display = 'none'; el.style.animation = ''; }
+        // ===== COUNTDOWN =====
+        function updateCountdown() {
+            const targetDate = new Date();
+            targetDate.setDate(targetDate.getDate() + 12);
+            targetDate.setHours(20, 0, 0, 0);
+            
+            function tick() {
+                const now = new Date().getTime();
+                const distance = targetDate.getTime() - now;
+                
+                if (distance < 0) {
+                    ['countDays', 'countHours', 'countMins', 'countSecs'].forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) el.textContent = '00';
+                    });
+                    return;
+                }
+                
+                document.getElementById('countDays').textContent = String(Math.floor(distance / (1000 * 60 * 60 * 24))).padStart(2, '0');
+                document.getElementById('countHours').textContent = String(Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))).padStart(2, '0');
+                document.getElementById('countMins').textContent = String(Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))).padStart(2, '0');
+                document.getElementById('countSecs').textContent = String(Math.floor((distance % (1000 * 60)) / 1000)).padStart(2, '0');
             }
-        });
-        document.querySelectorAll('.nav-links a, .sidebar-menu a').forEach(link => { link.classList.remove('active'); if (link.dataset.section === sectionName) link.classList.add('active'); });
-        if (sectionName === 'teams') renderTeamsGrid();
-        if (sectionName === 'rankings') renderRankings();
-        if (sectionName === 'tournaments') renderTournaments();
-        if (sectionName === 'support') renderSupportContent();
-        if (sectionName === 'chat') renderChatContent();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    function getDefaultLogoIcon(index) { const icons = ['fa-shield-halved', 'fa-dragon', 'fa-bolt', 'fa-fire', 'fa-skull', 'fa-crown', 'fa-ghost']; return `<i class="fas ${icons[index % icons.length]}"></i>`; }
-    function getDefaultLogoStyle(index) { const gradients = ['background: linear-gradient(135deg, #F6C945, #D4A833);', 'background: linear-gradient(135deg, #3b82f6, #1d4ed8);', 'background: linear-gradient(135deg, #10b981, #059669);', 'background: linear-gradient(135deg, #8b5cf6, #6d28d9);', 'background: linear-gradient(135deg, #ef4444, #dc2626);', 'background: linear-gradient(135deg, #f59e0b, #d97706);', 'background: linear-gradient(135deg, #06b6d4, #0891b2);']; return gradients[index % gradients.length]; }
-    function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
-    function handleResponsive() { const menuToggle = document.querySelector('.menu-toggle'); if (menuToggle) { menuToggle.style.display = window.innerWidth <= 1024 ? 'flex' : 'none'; } }
-
-    // ===== EVENT LISTENERS =====
-    document.addEventListener('click', function(e) {
-        if (e.target.classList.contains('modal-overlay')) { e.target.classList.remove('active'); document.body.style.overflow = ''; }
-        if (e.target.classList.contains('tab')) { const parent = e.target.parentElement; parent.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); e.target.classList.add('active'); if (parent.id === 'tournamentTabs') renderTournaments(); if (parent.id === 'rankingTabs') renderRankings(); }
-        if (e.target.closest('.nav-links a') || e.target.closest('.sidebar-menu a')) { const link = e.target.closest('a'); if (link && link.dataset.section) { e.preventDefault(); showSection(link.dataset.section); if (window.innerWidth <= 1024) toggleSidebar(); } }
-    });
-    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') { document.querySelectorAll('.modal-overlay.active').forEach(modal => { modal.classList.remove('active'); document.body.style.overflow = ''; }); if (document.getElementById('sidebar').classList.contains('active')) toggleSidebar(); } });
-    window.addEventListener('resize', handleResponsive);
-
-    // Drag and drop for upload
-    document.addEventListener('DOMContentLoaded', function() {
-        const uploadArea = document.getElementById('uploadArea');
-        if (uploadArea) {
-            uploadArea.addEventListener('dragover', function(e) { e.preventDefault(); this.classList.add('drag-over'); });
-            uploadArea.addEventListener('dragleave', function() { this.classList.remove('drag-over'); });
-            uploadArea.addEventListener('drop', function(e) { e.preventDefault(); this.classList.remove('drag-over'); const file = e.dataTransfer.files[0]; if (file) { const input = document.getElementById('teamLogo'); const dt = new DataTransfer(); dt.items.add(file); input.files = dt.files; handleLogoUpload({ target: { files: dt.files } }); } });
+            
+            tick();
+            setInterval(tick, 1000);
         }
-    });
 
-    // ===== COUNTDOWN =====
-    function updateCountdown() {
-        const targetDate = new Date(); targetDate.setDate(targetDate.getDate() + 12); targetDate.setHours(20, 0, 0, 0);
-        function tick() { const now = new Date().getTime(); const distance = targetDate.getTime() - now; if (distance < 0) { ['countDays', 'countHours', 'countMins', 'countSecs'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = '00'; }); return; } document.getElementById('countDays').textContent = String(Math.floor(distance / (1000 * 60 * 60 * 24))).padStart(2, '0'); document.getElementById('countHours').textContent = String(Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))).padStart(2, '0'); document.getElementById('countMins').textContent = String(Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))).padStart(2, '0'); document.getElementById('countSecs').textContent = String(Math.floor((distance % (1000 * 60)) / 1000)).padStart(2, '0'); }
-        tick(); setInterval(tick, 1000);
-    }
+        // ===== PARTICLES =====
+        function generateParticles() {
+            const container = document.getElementById('particles');
+            const colors = ['#F6C945', '#ffffff', '#4a4a4a', '#1a3a5c', '#FFD966'];
+            for (let i = 0; i < 80; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                const size = Math.random() * 3 + 1;
+                particle.style.cssText = `
+                    width: ${size}px; height: ${size}px;
+                    background: ${colors[Math.floor(Math.random() * colors.length)]};
+                    left: ${Math.random() * 100}%; top: ${Math.random() * 100}%;
+                    --tx: ${(Math.random() - 0.5) * 200}px;
+                    --ty: ${(Math.random() - 0.5) * 200}px;
+                    --rot: ${Math.random() * 360}deg;
+                    animation: particleMove ${Math.random() * 20 + 10}s ${Math.random() * 5}s infinite alternate;
+                    opacity: ${Math.random() * 0.5 + 0.2};
+                `;
+                container.appendChild(particle);
+            }
+        }
 
-    // ===== INIT =====
-    async function init() {
-        if (!currentUser) { const sessionUser = sessionStorage.getItem('novaBrawlCurrentUser'); if (sessionUser) currentUser = JSON.parse(sessionUser); }
-        await loadData();
-        updateCountdown(); handleResponsive(); updateUI(); renderAllContent();
-        setTimeout(() => { showNotification('Bem-vindo à Nova Brawl 🐉', 'info'); }, 2000);
+        // ===== INIT =====
+function init() {
+    // Check for session-only login
+    if (!currentUser) {
+        const sessionUser = sessionStorage.getItem('novaBrawlCurrentUser');
+        if (sessionUser) {
+            currentUser = JSON.parse(sessionUser);
+        }
     }
-    window.addEventListener('DOMContentLoaded', init);
-</script>
+    
+    // generateParticles();  ← PARTÍCULAS DESATIVADAS
+    updateCountdown();
+    handleResponsive();
+    updateUI();
+    renderAllContent();
+    
+    setTimeout(() => {
+        showNotification('Bem-vindo à Nova Brawl! Temporada 5 em andamento.', 'info');
+    }, 2000);
+}
+
+        window.addEventListener('DOMContentLoaded', init);
+
+        console.log('%c🐉 Nova Brawl %cPlataforma Oficial',
+            'font-size: 24px; font-weight: bold; color: #F6C945;',
+            'font-size: 14px; color: #ffffff;');
+        console.log('%cDomine a Arena. Faça História.',
+            'font-size: 16px; color: #F6C945; font-style: italic;');
+        console.log('%c✅ Login funcional | ✅ Equipes | ✅ Campeonatos | ✅ Ranking ELO | ✅ Suporte',
+            'font-size: 12px; color: #10b981;');
+    </script>
 
     <!-- 🎬 Vídeo de fundo -->
     <video autoplay muted loop playsinline id="bgVideo" style="
