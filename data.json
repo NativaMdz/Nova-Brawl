@@ -1,6 +1,65 @@
 {
-  "users": [],
+  "users": [
+    {
+      "id": "1783787164347",
+      "name": "DrizzyMdk",
+      "nick": "Drizzy",
+      "tag": "#PGGRY8RRL",
+      "email": "mandela@gmail.com",
+      "password": "Mandela12345",
+      "createdAt": "2026-07-11T16:26:04.347Z",
+      "teamId": null
+    }
+  ],
   "teams": [],
   "tickets": [],
-  "tournaments": []
+  "tournaments": [
+    {
+      "id": "t1",
+      "name": "Copa Nova Brawl - Temporada 5",
+      "mode": "Brawl Ball 3v3",
+      "prize": "R$ 5.000",
+      "status": "active",
+      "date": "2026-07-20T20:00:00",
+      "maxTeams": 32,
+      "subscribedTeams": [],
+      "description": "O maior campeonato da temporada! Compita com as melhores equipes e mostre seu talento."
+    },
+    {
+      "id": "t2",
+      "name": "Desafio Solo Showdown",
+      "mode": "Solo Showdown",
+      "prize": "R$ 2.000",
+      "status": "upcoming",
+      "date": "2026-08-05T18:00:00",
+      "maxTeams": 64,
+      "subscribedTeams": [],
+      "description": "Desafio individual onde só os melhores sobrevivem!"
+    },
+    {
+      "id": "t3",
+      "name": "Copa Gem Grab",
+      "mode": "Gem Grab 3v3",
+      "prize": "R$ 3.000",
+      "status": "upcoming",
+      "date": "2026-08-15T19:00:00",
+      "maxTeams": 48,
+      "subscribedTeams": [],
+      "description": "Competição intensa de Gem Grab. Coordenação é a chave!"
+    },
+    {
+      "id": "t4",
+      "name": "Torneio Heist",
+      "mode": "Heist 3v3",
+      "prize": "R$ 1.500",
+      "status": "past",
+      "date": "2026-06-10T20:00:00",
+      "maxTeams": 24,
+      "subscribedTeams": [
+        "team_demo_1",
+        "team_demo_2"
+      ],
+      "description": "Torneio de Heist já encerrado. Veja os resultados!"
+    }
+  ]
 }
