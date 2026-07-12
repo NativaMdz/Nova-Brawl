@@ -1881,35 +1881,81 @@ input[type="checkbox"] {
     </footer>
 
     <!-- Modals -->
-    <div class="modal-overlay" id="loginModal">
-        <div class="modal">
-            <div class="modal-header">
-                <h2 class="modal-title">Entrar na <span class="text-gold">Nova Brawl</span></h2>
-                <p class="modal-subtitle">Bem-vindo de volta à comunidade</p>
-            </div>
-            <form id="loginForm" onsubmit="handleLogin(event)">
-                <div class="form-group">
-                    <label class="form-label">E-mail</label>
-                    <input type="email" class="form-input" id="loginEmail" placeholder="seu@email.com" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Senha</label>
-                    <input type="password" class="form-input" id="loginPassword" placeholder="••••••••" required minlength="6">
-                </div>
-                <div class="form-group">
-                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: var(--white-70); font-size: 0.9rem;">
-                        <input type="checkbox" id="rememberMe" style="accent-color: var(--gold);"> Lembrar-me
-                    </label>
-                </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 0.9rem;">
-                    <i class="fas fa-sign-in-alt"></i> Entrar
-                </button>
-            </form>
-            <p class="modal-footer">
-                Não tem uma conta? <a onclick="showRegisterForm()" style="cursor: pointer;">Criar conta</a>
-            </p>
+<div class="modal-overlay" id="loginModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 class="modal-title">Entrar na <span class="text-gold">Nova Brawl</span></h2>
+            <p class="modal-subtitle">Bem-vindo de volta à comunidade</p>
         </div>
+        <div class="form-group">
+            <label class="form-label">E-mail</label>
+            <input type="email" class="form-input" id="loginEmail" placeholder="seu@email.com" required>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Senha</label>
+            <input type="password" class="form-input" id="loginPassword" placeholder="••••••••" required minlength="6">
+        </div>
+        <div class="form-group">
+            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: var(--white-70); font-size: 0.9rem;">
+                <input type="checkbox" id="rememberMe" style="accent-color: var(--gold);"> Lembrar-me
+            </label>
+        </div>
+<button class="btn btn-primary" id="loginBtn" style="width: 100%; justify-content: center; padding: 0.9rem;" onclick="
+    var email = document.getElementById('loginEmail').value.trim();
+    var password = document.getElementById('loginPassword').value;
+    var rememberMe = document.getElementById('rememberMe').checked;
+    
+    if (!email || !password) {
+        alert('Preencha todos os campos!');
+        return;
+    }
+    
+    alert('Enviando para o Firebase...');
+    
+    signInWithEmailAndPassword(auth, email, password)
+    .then(function(cred) {
+        alert('✅ Login aprovado pelo Firebase!');
+        
+        currentUser = {
+            id: cred.user.uid,
+            name: email.split('@')[0],
+            nick: '',
+            tag: '',
+            email: email,
+            teamId: null
+        };
+        
+        if (rememberMe) {
+            localStorage.setItem('novaBrawlCurrentUser', JSON.stringify(currentUser));
+        } else {
+            sessionStorage.setItem('novaBrawlCurrentUser', JSON.stringify(currentUser));
+        }
+        
+        alert('Salvando e fechando...');
+        closeModal('loginModal');
+        updateUI();
+        alert('Pronto! Você está logado como: ' + currentUser.name);
+        
+    })
+    .catch(function(err) {
+        alert('❌ Erro: ' + err.code);
+        if (err.code === 'auth/invalid-credential') {
+            alert('Senha incorreta!');
+        } else if (err.code === 'auth/user-not-found') {
+            alert('Email não cadastrado!');
+        } else {
+            alert(err.message);
+        }
+    });
+">
+    <i class="fas fa-sign-in-alt"></i> Entrar
+</button>
+
+        <p style="text-align: center; margin-top: 1rem; color: var(--white-50);">
+            Não tem uma conta? <a onclick="showRegisterForm()" style="cursor: pointer; color: var(--gold);">Criar conta</a>
+        </p>
     </div>
+</div>
 
     <div class="modal-overlay" id="registerModal">
         <div class="modal modal-lg">
@@ -2158,94 +2204,147 @@ input[type="checkbox"] {
             localStorage.setItem('novaBrawlCurrentUser', JSON.stringify(currentUser));
         }
 
-        async function handleRegister(e) {
+async function handleLogin(e) {
+    e.preventDefault();
+    
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const rememberMe = document.getElementById('rememberMe')?.checked || false;
+    
+    if (!email || !password) {
+        showNotification('Preencha todos os campos!', 'error');
+        return;
+    }
+    
+    try {
+        const cred = await signInWithEmailAndPassword(auth, email, password);
+        
+        const userDoc = await getDoc(doc(db, "users", cred.user.uid));
+        
+        if (userDoc.exists()) {
+            const data = userDoc.data();
+            currentUser = {
+                id: cred.user.uid,
+                name: data.name,
+                nick: data.nick,
+                tag: data.tag,
+                email: data.email,
+                teamId: data.teamId || null
+            };
+        } else {
+            currentUser = {
+                id: cred.user.uid,
+                name: email.split('@')[0],
+                nick: '',
+                tag: '',
+                email: email,
+                teamId: null
+            };
+        }
+        
+        if (rememberMe) {
+            localStorage.setItem('novaBrawlCurrentUser', JSON.stringify(currentUser));
+        } else {
+            sessionStorage.setItem('novaBrawlCurrentUser', JSON.stringify(currentUser));
+        }
+        
+        closeModal('loginModal');
+        updateUI();
+        showNotification(`Bem-vindo, ${currentUser.name}! 👋`, 'success');
+        
+    } catch (err) {
+        console.error('Erro no login:', err);
+        if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+            showNotification('E-mail ou senha incorretos!', 'error');
+        } else if (err.code === 'auth/invalid-email') {
+            showNotification('E-mail inválido!', 'error');
+        } else {
+            showNotification('Erro ao fazer login: ' + err.message, 'error');
+        }
+    }
+}
 
+async function handleRegister(e) {
     e.preventDefault();
 
-    const name = regName.value.trim();
-    const nick = regNick.value.trim();
-    const tag = regTag.value.trim().toUpperCase();
-    const email = regEmail.value.trim();
-    const password = regPassword.value;
-    const confirm = regConfirmPassword.value;
+    const name = document.getElementById('regName').value.trim();
+    const nick = document.getElementById('regNick').value.trim();
+    const tag = document.getElementById('regTag').value.trim().toUpperCase();
+    const email = document.getElementById('regEmail').value.trim();
+    const password = document.getElementById('regPassword').value;
+    const confirm = document.getElementById('regConfirmPassword').value;
+
+    if (!name || !nick || !tag || !email || !password) {
+        showNotification('Preencha todos os campos!', 'error');
+        return;
+    }
 
     if (password !== confirm) {
-        showNotification("As senhas não coincidem!", "error");
+        showNotification('As senhas não coincidem!', 'error');
+        return;
+    }
+
+    if (password.length < 6) {
+        showNotification('A senha deve ter no mínimo 6 caracteres!', 'error');
         return;
     }
 
     try {
-
+        // Tenta criar o usuário
         const cred = await createUserWithEmailAndPassword(auth, email, password);
 
+        // Salva dados no Firestore
         await setDoc(doc(db, "users", cred.user.uid), {
-
             id: cred.user.uid,
-
             name,
-
             nick,
-
             tag,
-
             email,
-
             teamId: null,
-
             createdAt: new Date().toISOString()
-
         });
 
         currentUser = {
-
             id: cred.user.uid,
-
             name,
-
             nick,
-
             tag,
-
             email,
-
             teamId: null
-
         };
 
-        closeModal("registerModal");
+        // Salva na sessão
+        sessionStorage.setItem('novaBrawlCurrentUser', JSON.stringify(currentUser));
 
+        closeModal('registerModal');
         updateUI();
-
-        showNotification("Conta criada com sucesso!", "success");
+        showNotification(`Conta criada com sucesso! Bem-vindo, ${name}! 🎉`, 'success');
 
     } catch (err) {
-
-        showNotification(err.message, "error");
-
-    }
-
-}
-
-        async function handleLogout() {
-
-    await signOut(auth);
-
-    currentUser = null;
-
-    updateUI();
-
-    showNotification("Você saiu da conta.", "info");
-
-}
-
-        function handleLogout() {
-            currentUser = null;
-            localStorage.removeItem('novaBrawlCurrentUser');
-            sessionStorage.removeItem('novaBrawlCurrentUser');
-            updateUI();
-            showNotification('Você saiu da sua conta.', 'info');
-            showSection('home');
+        console.error('Erro no registro:', err);
+        
+        if (err.code === 'auth/email-already-in-use') {
+            showNotification('Este e-mail já está cadastrado. Faça login em vez disso.', 'warning');
+            // Fecha o registro e abre o login
+            closeModal('registerModal');
+            setTimeout(() => openModal('loginModal'), 300);
+        } else if (err.code === 'auth/weak-password') {
+            showNotification('A senha é muito fraca. Use pelo menos 6 caracteres.', 'error');
+        } else {
+            showNotification('Erro ao criar conta: ' + err.message, 'error');
         }
+    }
+}
+
+async function handleLogout() {
+    await signOut(auth);
+    currentUser = null;
+    localStorage.removeItem('novaBrawlCurrentUser');
+    sessionStorage.removeItem('novaBrawlCurrentUser');
+    updateUI();
+    showNotification('Você saiu da sua conta.', 'info');
+    showSection('home');
+}
 
         function showRegisterForm() {
             closeModal('loginModal');
@@ -3444,19 +3543,47 @@ function showSection(sectionName) {
 
         // ===== INIT =====
 function init() {
-    // Check for session-only login
-    if (!currentUser) {
-        const sessionUser = sessionStorage.getItem('novaBrawlCurrentUser');
-        if (sessionUser) {
-            currentUser = JSON.parse(sessionUser);
+    // Mostra a UI imediatamente (botão Entrar) enquanto o Firebase verifica
+    updateUI();
+    
+    // Listener do Firebase - mantém login ao recarregar a página
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            const storedUser = localStorage.getItem('novaBrawlCurrentUser');
+            const sessionUser = sessionStorage.getItem('novaBrawlCurrentUser');
+            
+            if (storedUser || sessionUser) {
+                currentUser = JSON.parse(storedUser || sessionUser);
+            } else {
+                try {
+                    const userDoc = await getDoc(doc(db, "users", user.uid));
+                    if (userDoc.exists()) {
+                        const data = userDoc.data();
+                        currentUser = {
+                            id: user.uid,
+                            name: data.name,
+                            nick: data.nick,
+                            tag: data.tag,
+                            email: data.email,
+                            teamId: data.teamId || null
+                        };
+                        sessionStorage.setItem('novaBrawlCurrentUser', JSON.stringify(currentUser));
+                    }
+                } catch (err) {}
+            }
+        } else {
+            currentUser = null;
+            localStorage.removeItem('novaBrawlCurrentUser');
+            sessionStorage.removeItem('novaBrawlCurrentUser');
         }
-    }
+        
+        updateUI();
+        renderAllContent();
+    });
     
     // generateParticles();  ← PARTÍCULAS DESATIVADAS
     updateCountdown();
     handleResponsive();
-    updateUI();
-    renderAllContent();
     
     setTimeout(() => {
         showNotification('Bem-vindo à Nova Brawl 👑', 'info');
@@ -3563,4 +3690,4 @@ console.log("✅ Firebase conectado");
     });
     </script>
 </body>
-                                                                                               </html>
+    </html>
