@@ -1906,16 +1906,12 @@ input[type="checkbox"] {
     var rememberMe = document.getElementById('rememberMe').checked;
     
     if (!email || !password) {
-        alert('Preencha todos os campos!');
+        showNotification('Preencha todos os campos!', 'error');
         return;
     }
     
-    alert('Enviando para o Firebase...');
-    
     signInWithEmailAndPassword(auth, email, password)
     .then(function(cred) {
-        alert('✅ Login aprovado pelo Firebase!');
-        
         currentUser = {
             id: cred.user.uid,
             name: email.split('@')[0],
@@ -1931,20 +1927,17 @@ input[type="checkbox"] {
             sessionStorage.setItem('novaBrawlCurrentUser', JSON.stringify(currentUser));
         }
         
-        alert('Salvando e fechando...');
         closeModal('loginModal');
         updateUI();
-        alert('Pronto! Você está logado como: ' + currentUser.name);
-        
+        showNotification('Bem-vindo, ' + currentUser.name + '! 👑', 'success');
     })
     .catch(function(err) {
-        alert('❌ Erro: ' + err.code);
         if (err.code === 'auth/invalid-credential') {
-            alert('Senha incorreta!');
+            showNotification('E-mail ou senha incorretos!', 'error');
         } else if (err.code === 'auth/user-not-found') {
-            alert('Email não cadastrado!');
+            showNotification('E-mail não cadastrado!', 'error');
         } else {
-            alert(err.message);
+            showNotification('Erro: ' + err.message, 'error');
         }
     });
 ">
