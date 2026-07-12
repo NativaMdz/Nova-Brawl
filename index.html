@@ -2158,82 +2158,85 @@ input[type="checkbox"] {
             localStorage.setItem('novaBrawlCurrentUser', JSON.stringify(currentUser));
         }
 
-        function handleRegister(e) {
-            e.preventDefault();
-            
-            const name = document.getElementById('regName').value.trim();
-            const nick = document.getElementById('regNick').value.trim();
-            const tag = document.getElementById('regTag').value.trim();
-            const email = document.getElementById('regEmail').value.trim();
-            const password = document.getElementById('regPassword').value;
-            const confirmPassword = document.getElementById('regConfirmPassword').value;
-            
-            // Validation
-            if (password !== confirmPassword) {
-                showNotification('As senhas não coincidem!', 'error');
-                return;
-            }
-            
-            if (users.find(u => u.email === email)) {
-                showNotification('Este e-mail já está cadastrado!', 'error');
-                return;
-            }
-            
-            if (!tag.startsWith('#')) {
-                showNotification('A tag do Brawl Stars deve começar com #', 'error');
-                return;
-            }
-            
-            const newUser = {
-                id: Date.now().toString(),
-                name,
-                nick,
-                tag: tag.toUpperCase(),
-                email,
-                password, // In production, hash this!
-                createdAt: new Date().toISOString(),
-                teamId: null
-            };
-            
-            users.push(newUser);
-            saveUsers();
-            
-            currentUser = { ...newUser };
-            delete currentUser.password;
-            saveCurrentUser();
-            
-            closeModal('registerModal');
-            updateUI();
-            showNotification(`Conta criada com sucesso! Bem-vindo, ${name}!`, 'success');
-        }
+        async function handleRegister(e) {
 
-        function handleLogin(e) {
-            e.preventDefault();
-            
-            const email = document.getElementById('loginEmail').value.trim();
-            const password = document.getElementById('loginPassword').value;
-            const rememberMe = document.getElementById('rememberMe').checked;
-            
-            const user = users.find(u => u.email === email && u.password === password);
-            
-            if (!user) {
-                showNotification('E-mail ou senha incorretos!', 'error');
-                return;
-            }
-            
-            currentUser = { ...user };
-            delete currentUser.password;
-            
-            if (rememberMe) {
-                saveCurrentUser();
-            } else {
-                sessionStorage.setItem('novaBrawlCurrentUser', JSON.stringify(currentUser));
-            }
-            
-            closeModal('loginModal');
-            updateUI();
-            showNotification(`Bem-vindo de volta, ${user.name}!`, 'success');
-        }
+    e.preventDefault();
+
+    const name = regName.value.trim();
+    const nick = regNick.value.trim();
+    const tag = regTag.value.trim().toUpperCase();
+    const email = regEmail.value.trim();
+    const password = regPassword.value;
+    const confirm = regConfirmPassword.value;
+
+    if (password !== confirm) {
+        showNotification("As senhas não coincidem!", "error");
+        return;
+    }
+
+    try {
+
+        const cred = await createUserWithEmailAndPassword(auth, email, password);
+
+        await setDoc(doc(db, "users", cred.user.uid), {
+
+            id: cred.user.uid,
+
+            name,
+
+            nick,
+
+            tag,
+
+            email,
+
+            teamId: null,
+
+            createdAt: new Date().toISOString()
+
+        });
+
+        currentUser = {
+
+            id: cred.user.uid,
+
+            name,
+
+            nick,
+
+            tag,
+
+            email,
+
+            teamId: null
+
+        };
+
+        closeModal("registerModal");
+
+        updateUI();
+
+        showNotification("Conta criada com sucesso!", "success");
+
+    } catch (err) {
+
+        showNotification(err.message, "error");
+
+    }
+
+}
+
+        async function handleLogout() {
+
+    await signOut(auth);
+
+    currentUser = null;
+
+    updateUI();
+
+    showNotification("Você saiu da conta.", "info");
+
+}
 
         function handleLogout() {
             currentUser = null;
@@ -2683,9 +2686,7 @@ input[type="checkbox"] {
                         <div class="empty-state">
                             <i class="fas fa-lock"></i>
                             <h3>Faça login para ver suas inscrições</h3>
-                            <button class="btn btn-primary mt-4" onclick="openModal('loginModal')">
-                                <i class="fas fa-sign-in-alt"></i> Entrar
-                            </button>
+                                                    <p>Você precisa estar logado para ver sua lista de inscrições.</p>
                         </div>
                     `;
                     return;
@@ -2820,9 +2821,6 @@ input[type="checkbox"] {
                         <i class="fas fa-lock"></i>
                         <h3>Faça login para acessar o suporte</h3>
                         <p>Você precisa estar logado para abrir tickets de suporte.</p>
-                        <button class="btn btn-primary mt-4" onclick="openModal('loginModal')">
-                            <i class="fas fa-sign-in-alt"></i> Entrar
-                        </button>
                     </div>
                 `;
                 return;
@@ -2912,10 +2910,7 @@ input[type="checkbox"] {
                         <i class="fas fa-lock"></i>
                         <h3>Faça login para acessar o chat</h3>
                         <p>Converse com outros jogadores em tempo real.</p>
-                        <button class="btn btn-primary mt-4" onclick="openModal('loginModal')">
-                            <i class="fas fa-sign-in-alt"></i> Entrar
-                        </button>
-                    </div>
+                   </div>
                 `;
                 return;
             }
@@ -3464,7 +3459,7 @@ function init() {
     renderAllContent();
     
     setTimeout(() => {
-        showNotification('Bem-vindo à Nova Brawl! Temporada 5 em andamento.', 'info');
+        showNotification('Bem-vindo à Nova Brawl 👑', 'info');
     }, 2000);
 }
 
@@ -3501,6 +3496,71 @@ function init() {
         background: rgba(0, 0, 0, 0.80);
         z-index: -1;
     "></div>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 
+import {
+  getFirestore,
+  doc,
+  setDoc,
+  getDoc
+} from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+
+import { getStorage } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-storage.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDjrybJ2Zb1VkQMaqTU7LHmgke35o45NhA",
+  authDomain: "nova-brawl.firebaseapp.com",
+  databaseURL: "https://nova-brawl-default-rtdb.firebaseio.com",
+  projectId: "nova-brawl",
+  storageBucket: "nova-brawl.firebasestorage.app",
+  messagingSenderId: "386213454591",
+  appId: "1:386213454591:web:2cd0238581a9c6ecbbe2ca"
+};
+
+const app = initializeApp(firebaseConfig);
+
+window.auth = getAuth(app);
+window.db = getFirestore(app);
+window.storage = getStorage(app);
+
+window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
+window.signInWithEmailAndPassword = signInWithEmailAndPassword;
+window.signOut = signOut;
+window.onAuthStateChanged = onAuthStateChanged;
+window.doc = doc;
+window.setDoc = setDoc;
+window.getDoc = getDoc;
+
+console.log("✅ Firebase conectado");
+</script>
+    <!-- 🎵 Música de fundo automática -->
+    <audio id="bgMusic" loop autoplay style="display: none;">
+        <source src="https://v16-ies-music.tiktokcdn-us.com/f60e6d4ddb626fe65c67f87bb354d3c3/6a5c36ea/video/tos/alisg/tos-alisg-ve-2774/oIoBa8NhQXFseAeAgz5Mg59VZXKCXuTDDDr8Cf/?a=583965&bti=OUBzOTg7QGo6OjZAL3AjLTAzYCMxNDNg&&bt=64&ft=7g~atDDwN4vVQQdGuIOnsdBNvxZqYlbvh84~hWLrK&mime_type=audio_mp4&rc=OTdlNWlmZGY1ZGU2NmY4PEBpM2R4c3c5cnlmOTMzODlkNEA2NC4wLjU0NjIxXjUyYDQxYSNyaV9uMmQ0aS1hLS1kYS1zcw%3D%3D&vvpl=1&l=20260712022906B7A676EAD1C2F1750671&btag=e00090000&shp=d05b14bd&shcp=- type="audio/mpeg">
+    </audio>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const audio = document.getElementById('bgMusic');
+        audio.volume = 0.10; // Volume
+        
+        // Tenta tocar automaticamente
+        audio.play().catch(function(err) {
+            console.log('🔇 Reprodução automática bloqueada pelo navegador.');
+            // Tenta de novo quando o usuário clicar em qualquer lugar
+            document.addEventListener('click', function playOnClick() {
+                audio.play().catch(() => {});
+                document.removeEventListener('click', playOnClick);
+            }, { once: true });
+        });
+    });
+    </script>
 </body>
-    </html>
+                                                                                               </html>
