@@ -2200,60 +2200,36 @@ input[type="checkbox"] {
 
 function loadTeams() {
 
-    const teamsGrid = document.getElementById("teamsGrid");
-    const emptyTeams = document.getElementById("emptyTeams");
-
     onSnapshot(collection(db, "teams"), (snapshot) => {
 
-        teamsGrid.innerHTML = "";
+        // Limpa o array global
+        teams = [];
 
-        if (snapshot.empty) {
-            emptyTeams.style.display = "block";
-            return;
-        }
-
-        emptyTeams.style.display = "none";
-
+        // Adiciona todas as equipes vindas do Firebase
         snapshot.forEach((teamDoc) => {
 
-            const team = teamDoc.data();
-
-            const logo = team.logo
-                ? `<img src="${team.logo}" style="width:70px;height:70px;border-radius:50%;object-fit:cover;">`
-                : `<div class="team-logo-placeholder">
-                        <i class="fas fa-shield-halved"></i>
-                   </div>`;
-
-            teamsGrid.innerHTML += `
-                <div class="team-card">
-
-                    ${logo}
-
-                    <h3>${team.name}</h3>
-
-                    <p style="color:gold;">
-                        👑 ${team.captainName}
-                    </p>
-
-                    <p>
-                        👥 ${team.players.length}/3 jogadores
-                    </p>
-
-                    <p>
-                        🏆 ${team.wins} Vitórias
-                    </p>
-
-                    <button class="btn btn-primary"
-                        onclick="viewTeam('${teamDoc.id}')">
-
-                        Ver Equipe
-
-                    </button>
-
-                </div>
-            `;
+            teams.push({
+                id: teamDoc.id,
+                ...teamDoc.data()
+            });
 
         });
+
+        console.log("Equipes carregadas:", teams);
+
+        // Atualiza a interface
+        renderTeamsGrid();
+
+        // Atualiza outras partes do site que usam as equipes
+        renderFeaturedTeams();
+
+        renderRankings();
+
+        renderStats();
+
+    }, (error) => {
+
+        console.error("Erro ao carregar equipes:", error);
 
     });
 
