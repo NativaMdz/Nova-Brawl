@@ -3303,7 +3303,9 @@ async function handleCreateTeam(e) {
 
 } catch (err) {
 
-    console.error(err);
+    console.error("Erro ao criar equipe:", err);
+
+    alert(err.message);
 
     showNotification(
         "Erro ao criar equipe.",
@@ -3816,4 +3818,4 @@ console.log("✅ Firebase conectado");
     });
     </script>
 </body>
-    </html>
+                    </html>
