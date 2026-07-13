@@ -3199,13 +3199,29 @@ async function handleCreateTeam(e) {
                     return;
                 }
                 
-                players.push({
-                    number: i + 1,
-                    nick,
-                    tag: tag.toUpperCase(),
-                    trophies,
-                    isCaptain: i === 0
-                });
+const playerTag = tag.toUpperCase();
+
+const q = query(
+    collection(db, "users"),
+    where("tag", "==", playerTag)
+);
+
+const snap = await getDocs(q);
+
+let uid = null;
+
+if (!snap.empty) {
+    uid = snap.docs[0].id;
+}
+
+players.push({
+    uid,
+    number: i + 1,
+    nick,
+    tag: playerTag,
+    trophies,
+    isCaptain: i === 0
+});
             }
             
             const newTeam = {
@@ -3336,23 +3352,69 @@ async function handleCreateTeam(e) {
             openModal('viewTeamModal');
         }
 
-        function deleteTeam(teamId) {
-            const team = teams.find(t => t.id === teamId);
-            if (!team) return;
-            
-            if (confirm(`Tem certeza que deseja remover a equipe "${team.name}"?`)) {
-                // Remove from tournament subscriptions
-                tournaments.forEach(t => {
-                    t.subscribedTeams = t.subscribedTeams.filter(id => id !== teamId);
-                });
-                saveTournaments();
-                
-                teams = teams.filter(t => t.id !== teamId);
-                saveTeams();
-                renderAllContent();
-                showNotification(`Equipe "${team.name}" removida.`, 'info');
-            }
+async function deleteTeam(teamId) {
+
+    if (!currentUser) {
+        showNotification("Faça login.", "warning");
+        return;
+    }
+
+    const confirmar = confirm("Deseja realmente excluir esta equipe?");
+
+    if (!confirmar) return;
+
+    try {
+
+        const teamRef = doc(db, "teams", teamId);
+        const teamSnap = await getDoc(teamRef);
+
+        if (!teamSnap.exists()) {
+            showNotification("Equipe não encontrada.", "error");
+            return;
         }
+
+        const team = teamSnap.data();
+
+        // Apenas o capitão pode excluir
+        if (team.captainId !== currentUser.id) {
+            showNotification("Somente o capitão pode excluir a equipe.", "error");
+            return;
+        }
+
+        // Remove o teamId dos jogadores cadastrados
+        for (const player of team.players) {
+
+            if (!player.uid) continue;
+
+            try {
+                await updateDoc(doc(db, "users", player.uid), {
+                    teamId: null
+                });
+            } catch (e) {}
+
+        }
+
+        // Remove também do capitão
+        await updateDoc(doc(db, "users", currentUser.id), {
+            teamId: null
+        });
+
+        // Exclui a equipe
+        await deleteDoc(teamRef);
+
+        currentUser.teamId = null;
+
+        showNotification("Equipe removida com sucesso!", "success");
+
+    } catch (err) {
+
+        console.error(err);
+
+        showNotification("Erro ao excluir equipe.", "error");
+
+    }
+
+}
 
         function saveTeams() {
             localStorage.setItem('novaBrawlTeams', JSON.stringify(teams));
@@ -3733,6 +3795,7 @@ import {
   getFirestore,
   collection,
   addDoc,
+  deleteDoc,
   doc,
   setDoc,
   getDoc,
@@ -3772,6 +3835,7 @@ window.getDoc = getDoc;
 
 window.collection = collection;
 window.addDoc = addDoc;
+window.deleteDoc = deleteDoc;
 window.updateDoc = updateDoc;
 window.onSnapshot = onSnapshot;
 window.serverTimestamp = serverTimestamp;
