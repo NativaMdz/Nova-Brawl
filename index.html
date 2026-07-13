@@ -2198,6 +2198,67 @@ input[type="checkbox"] {
             localStorage.setItem('novaBrawlCurrentUser', JSON.stringify(currentUser));
         }
 
+function loadTeams() {
+
+    const teamsGrid = document.getElementById("teamsGrid");
+    const emptyTeams = document.getElementById("emptyTeams");
+
+    onSnapshot(collection(db, "teams"), (snapshot) => {
+
+        teamsGrid.innerHTML = "";
+
+        if (snapshot.empty) {
+            emptyTeams.style.display = "block";
+            return;
+        }
+
+        emptyTeams.style.display = "none";
+
+        snapshot.forEach((teamDoc) => {
+
+            const team = teamDoc.data();
+
+            const logo = team.logo
+                ? `<img src="${team.logo}" style="width:70px;height:70px;border-radius:50%;object-fit:cover;">`
+                : `<div class="team-logo-placeholder">
+                        <i class="fas fa-shield-halved"></i>
+                   </div>`;
+
+            teamsGrid.innerHTML += `
+                <div class="team-card">
+
+                    ${logo}
+
+                    <h3>${team.name}</h3>
+
+                    <p style="color:gold;">
+                        👑 ${team.captainName}
+                    </p>
+
+                    <p>
+                        👥 ${team.players.length}/3 jogadores
+                    </p>
+
+                    <p>
+                        🏆 ${team.wins} Vitórias
+                    </p>
+
+                    <button class="btn btn-primary"
+                        onclick="viewTeam('${teamDoc.id}')">
+
+                        Ver Equipe
+
+                    </button>
+
+                </div>
+            `;
+
+        });
+
+    });
+
+}
+
 async function handleLogin(e) {
     e.preventDefault();
     
@@ -3075,7 +3136,10 @@ async function handleLogout() {
                 openModal('loginModal');
                 return;
             }
-            
+            if (currentUser.teamId) {
+    showNotification('Você já faz parte de uma equipe!', 'warning');
+    return;
+}          
             // Check if user already has a team
             const existingTeam = teams.find(t => 
                 t.players.some(p => p.tag === currentUser.tag) ||
@@ -3121,7 +3185,7 @@ async function handleLogout() {
             `).join('');
         }
 
-        function handleCreateTeam(e) {
+async function handleCreateTeam(e) {
             e.preventDefault();
             
             if (!currentUser) {
@@ -3181,6 +3245,7 @@ async function handleLogout() {
                 createdBy: currentUser.id
             };
             
+            /*
             teams.unshift(newTeam);
             saveTeams();
             
@@ -3191,7 +3256,61 @@ async function handleLogout() {
             closeModal('createTeamModal');
             renderAllContent();
             showNotification(`Equipe "${teamName}" criada com sucesso! 🎉`, 'success');
-            showSection('teams');
+            showSection('teams')
+            ;*/
+            try {
+
+    const teamRef = await addDoc(collection(db, "teams"), {
+
+        name: teamName,
+
+        logo: uploadedLogoData || "",
+
+        players: players,
+
+        wins: 0,
+
+        losses: 0,
+
+        elo: 1000,
+
+        winRate: 50,
+
+        captainId: currentUser.id,
+
+        captainName: currentUser.nick,
+
+        createdAt: serverTimestamp()
+
+    });
+
+    await updateDoc(doc(db, "users", currentUser.id), {
+
+        teamId: teamRef.id
+
+    });
+
+    currentUser.teamId = teamRef.id;
+
+    closeModal("createTeamModal");
+
+    showNotification(
+        `Equipe "${teamName}" criada com sucesso! 🎉`,
+        "success"
+    );
+
+    showSection("teams");
+
+} catch (err) {
+
+    console.error(err);
+
+    showNotification(
+        "Erro ao criar equipe.",
+        "error"
+    );
+
+}
         }
 
         function viewTeam(teamId) {
@@ -3541,6 +3660,7 @@ function init() {
     updateUI();
     
     // Listener do Firebase - mantém login ao recarregar a página
+    let teamsListenerStarted = false;
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             const storedUser = localStorage.getItem('novaBrawlCurrentUser');
@@ -3571,8 +3691,12 @@ function init() {
             sessionStorage.removeItem('novaBrawlCurrentUser');
         }
         
-        updateUI();
-        renderAllContent();
+updateUI();
+renderAllContent();
+if (!teamsListenerStarted) {
+    loadTeams();
+    teamsListenerStarted = true;
+}
     });
     
     // generateParticles();  ← PARTÍCULAS DESATIVADAS
@@ -3629,9 +3753,17 @@ import {
 
 import {
   getFirestore,
+  collection,
+  addDoc,
   doc,
   setDoc,
-  getDoc
+  getDoc,
+  getDocs,
+  query,
+  where,
+  updateDoc,
+  onSnapshot,
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
 import { getStorage } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-storage.js";
