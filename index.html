@@ -3294,16 +3294,9 @@ players.push({
     showSection("teams");
 
 } catch (err) {
-
     console.error("Erro ao criar equipe:", err);
-
     alert(err.message);
-
-    showNotification(
-        "Erro ao criar equipe.",
-        "error"
-    );
-
+    showNotification("Erro ao criar equipe.", "error");
 }
         }
 
@@ -3832,6 +3825,9 @@ window.onAuthStateChanged = onAuthStateChanged;
 window.doc = doc;
 window.setDoc = setDoc;
 window.getDoc = getDoc;
+window.query = query;
+window.where = where;
+window.getDocs = getDocs;
 
 window.collection = collection;
 window.addDoc = addDoc;
@@ -3864,4 +3860,4 @@ console.log("✅ Firebase conectado");
     });
     </script>
 </body>
-    </html>
+                            </html>
