@@ -3155,9 +3155,9 @@ async function handleLogout() {
                 return;
             }
             
-            resetCreateTeamForm();
-            generatePlayerRows(team.players);
-            openModal('createTeamModal');
+resetCreateTeamForm();
+generatePlayerRows();
+openModal('createTeamModal');
         }
 
 function generatePlayerRows(players = null) {
@@ -3465,7 +3465,7 @@ players.push({
         document.getElementById("uploadPlaceholder").style.display = "none";
     }
 
-    generatePlayerRows();
+   generatePlayerRows(team.players);
 
     const rows = document.querySelectorAll(".player-row");
 
@@ -4000,4 +4000,4 @@ console.log("✅ Firebase conectado");
     });
     </script>
 </body>
-</html>
+            </html>
