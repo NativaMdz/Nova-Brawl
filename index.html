@@ -2079,8 +2079,8 @@ input[type="checkbox"] {
 
     <script>
         // ===== DATA STORE =====
-        let users = JSON.parse(localStorage.getItem('novaBrawlUsers') || '[]');
-        let currentUser = JSON.parse(localStorage.getItem('novaBrawlCurrentUser') || 'null');
+        users = JSON.parse(localStorage.getItem('novaBrawlUsers') || '[]');
+        currentUser = JSON.parse(localStorage.getItem('novaBrawlCurrentUser') || 'null');
         let teams = JSON.parse(localStorage.getItem('novaBrawlTeams') || '[]');
         let tournaments = JSON.parse(localStorage.getItem('novaBrawlTournaments') || JSON.stringify([
             {
@@ -2128,8 +2128,9 @@ input[type="checkbox"] {
                 description: 'Torneio de Heist já encerrado. Veja os resultados!'
             }
         ]));
-        let supportTickets = JSON.parse(localStorage.getItem('novaBrawlTickets') || '[]');
+        supportTickets = JSON.parse(localStorage.getItem('novaBrawlTickets') || '[]');
         let uploadedLogoData = null;
+        let editingTeamId = null;
 
         // Parse stored data
         tournaments = typeof tournaments === 'string' ? JSON.parse(tournaments) : tournaments;
@@ -3093,12 +3094,39 @@ async function handleLogout() {
                     `).join('')}
                 </div>
                 <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-                    <button class="btn btn-outline btn-sm" style="flex: 1; justify-content: center;" onclick="viewTeam('${team.id}')">
-                        <i class="fas fa-eye"></i> Ver
-                    </button>
-                    <button class="btn btn-danger btn-sm" style="flex: 1; justify-content: center;" onclick="deleteTeam('${team.id}')">
-                        <i class="fas fa-trash"></i> Remover
-                    </button>
+<div style="display:flex;gap:0.5rem;margin-top:1rem;">
+
+    <button class="btn btn-outline btn-sm"
+        style="flex:1;justify-content:center;"
+        onclick="viewTeam('${team.id}')">
+
+        <i class="fas fa-eye"></i> Ver
+
+    </button>
+
+    ${
+        currentUser && currentUser.id === team.captainId
+        ? `
+        <button class="btn btn-warning btn-sm"
+            style="flex:1;justify-content:center;"
+            onclick="editTeam('${team.id}')">
+
+            <i class="fas fa-pen"></i> Editar
+
+        </button>
+
+        <button class="btn btn-danger btn-sm"
+            style="flex:1;justify-content:center;"
+            onclick="deleteTeam('${team.id}')">
+
+            <i class="fas fa-trash"></i> Excluir
+
+        </button>
+        `
+        : ""
+    }
+
+</div>
                 </div>
             </div>
         `;
@@ -3252,6 +3280,30 @@ players.push({
             ;*/
             try {
 
+    if (editingTeamId) {
+
+        await updateDoc(doc(db, "teams", editingTeamId), {
+
+            name: teamName,
+
+            logo: uploadedLogoData || "",
+
+            players: players
+
+        });
+
+        closeModal("createTeamModal");
+
+        editingTeamId = null;
+
+        showNotification(
+            "Equipe atualizada com sucesso! 🎉",
+            "success"
+        );
+
+        return;
+    }
+
     const teamRef = await addDoc(collection(db, "teams"), {
 
         name: teamName,
@@ -3294,9 +3346,16 @@ players.push({
     showSection("teams");
 
 } catch (err) {
-    console.error("Erro ao criar equipe:", err);
+
+    console.error(err);
+
     alert(err.message);
-    showNotification("Erro ao criar equipe.", "error");
+
+    showNotification(
+        "Erro ao salvar equipe.",
+        "error"
+    );
+
 }
         }
 
@@ -3344,6 +3403,43 @@ players.push({
             
             openModal('viewTeamModal');
         }
+        
+        function editTeam(teamId) {
+
+    const team = teams.find(t => t.id === teamId);
+
+    if (!team) return;
+
+    editingTeamId = team.id;
+
+    document.getElementById("teamName").value = team.name;
+
+    uploadedLogoData = team.logo || null;
+
+    if (team.logo) {
+        document.getElementById("uploadPreview").src = team.logo;
+        document.getElementById("uploadPreview").style.display = "block";
+        document.getElementById("uploadPlaceholder").style.display = "none";
+    }
+
+    generatePlayerRows();
+
+    const rows = document.querySelectorAll(".player-row");
+
+    team.players.forEach((player, i) => {
+        rows[i].querySelector(".player-nick").value = player.nick;
+        rows[i].querySelector(".player-tag").value = player.tag;
+        rows[i].querySelector(".player-trophies").value = player.trophies;
+    });
+
+    document.querySelector("#createTeamModal .modal-title").innerHTML =
+        'Editar <span class="text-gold">Equipe</span>';
+
+    document.querySelector("#createTeamForm button[type='submit']").innerHTML =
+        '<i class="fas fa-save"></i> Salvar Alterações';
+
+    openModal("createTeamModal");
+}
 
 async function deleteTeam(teamId) {
 
@@ -3569,6 +3665,7 @@ function showSection(sectionName) {
             if (menuToggle) {
                 menuToggle.style.display = window.innerWidth <= 1024 ? 'flex' : 'none';
             }
+            
         }
 
         // ===== EVENT LISTENERS =====
@@ -3860,4 +3957,4 @@ console.log("✅ Firebase conectado");
     });
     </script>
 </body>
-                            </html>
+</html>
