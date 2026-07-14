@@ -3447,7 +3447,7 @@ players.push({
             openModal('viewTeamModal');
         }
         
-        function editTeam(teamId) {
+function editTeam(teamId) {
 
     const team = teams.find(t => t.id === teamId);
 
@@ -3460,20 +3460,20 @@ players.push({
     uploadedLogoData = team.logo || null;
 
     if (team.logo) {
+
         document.getElementById("uploadPreview").src = team.logo;
         document.getElementById("uploadPreview").style.display = "block";
         document.getElementById("uploadPlaceholder").style.display = "none";
+
+    } else {
+
+        document.getElementById("uploadPreview").style.display = "none";
+        document.getElementById("uploadPlaceholder").style.display = "block";
+
     }
 
-   generatePlayerRows(team.players);
-
-    const rows = document.querySelectorAll(".player-row");
-
-    team.players.forEach((player, i) => {
-        rows[i].querySelector(".player-nick").value = player.nick;
-        rows[i].querySelector(".player-tag").value = player.tag;
-        rows[i].querySelector(".player-trophies").value = player.trophies;
-    });
+    // Preenche os jogadores
+    generatePlayerRows(team.players);
 
     document.querySelector("#createTeamModal .modal-title").innerHTML =
         'Editar <span class="text-gold">Equipe</span>';
@@ -3482,6 +3482,7 @@ players.push({
         '<i class="fas fa-save"></i> Salvar Alterações';
 
     openModal("createTeamModal");
+
 }
 
 async function deleteTeam(teamId) {
@@ -3623,14 +3624,21 @@ async function deleteTeam(teamId) {
             }, 5000);
         }
 
-        function openModal(modalId) {
-            const modal = document.getElementById(modalId);
-            if (modal) {
-                modal.classList.add('active');
-                document.body.style.overflow = 'hidden';
-                if (modalId === 'createTeamModal') generatePlayerRows();
-            }
-        }
+function openModal(modalId) {
+
+    const modal = document.getElementById(modalId);
+
+    if (!modal) return;
+
+    modal.classList.add('active');
+
+    document.body.style.overflow = 'hidden';
+
+    if (modalId === 'createTeamModal' && !editingTeamId) {
+        generatePlayerRows();
+    }
+
+}
 
         function closeModal(modalId) {
             const modal = document.getElementById(modalId);
@@ -4000,4 +4008,4 @@ console.log("✅ Firebase conectado");
     });
     </script>
 </body>
-            </html>
+    </html>
