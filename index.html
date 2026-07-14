@@ -3156,38 +3156,81 @@ async function handleLogout() {
             }
             
             resetCreateTeamForm();
-            generatePlayerRows();
+            generatePlayerRows(team.players);
             openModal('createTeamModal');
         }
 
-        function generatePlayerRows() {
-            const container = document.getElementById('playersContainer');
-            if (!container) return;
-            
-            const roles = ['Capitão', 'Jogador 2', 'Jogador 3'];
-            const emojis = ['⭐', '👤', '👤'];
-            
-            // Pre-fill captain with current user data
-            const captainData = currentUser ? { nick: currentUser.nick || '', tag: currentUser.tag || '' } : { nick: '', tag: '' };
-            
-            container.innerHTML = roles.map((role, i) => `
-                <div class="player-row">
-                    <span class="player-number">${emojis[i]} ${role}</span>
-                    <div class="form-group" style="margin-bottom: 0;">
-                        <label class="form-label">Nick no Brawl:</label>
-                        <input type="text" class="form-input player-nick" placeholder="Seu nick" value="${i === 0 ? escapeHtml(captainData.nick) : ''}" required>
-                    </div>
-                    <div class="form-group" style="margin-bottom: 0;">
-                        <label class="form-label">Tag:</label>
-                        <input type="text" class="form-input player-tag" placeholder="#12345" value="${i === 0 ? escapeHtml(captainData.tag) : ''}" required pattern="#[A-Za-z0-9]+">
-                    </div>
-                    <div class="form-group" style="margin-bottom: 0;">
-                        <label class="form-label">Troféus:</label>
-                        <input type="number" class="form-input player-trophies" placeholder="Ex: 25000" min="0" value="0">
-                    </div>
+function generatePlayerRows(players = null) {
+
+    const container = document.getElementById('playersContainer');
+    if (!container) return;
+
+    const roles = ['Capitão', 'Jogador 2', 'Jogador 3'];
+    const emojis = ['⭐', '👤', '👤'];
+
+    container.innerHTML = roles.map((role, i) => {
+
+        const player = players
+            ? players[i]
+            : {
+                nick: i === 0 ? (currentUser?.nick || '') : '',
+                tag: i === 0 ? (currentUser?.tag || '') : '',
+                trophies: 0
+            };
+
+        return `
+            <div class="player-row">
+
+                <span class="player-number">
+                    ${emojis[i]} ${role}
+                </span>
+
+                <div class="form-group" style="margin-bottom:0;">
+                    <label class="form-label">
+                        Nick no Brawl:
+                    </label>
+
+                    <input
+                        type="text"
+                        class="form-input player-nick"
+                        placeholder="Seu nick"
+                        value="${escapeHtml(player.nick || '')}"
+                        required>
                 </div>
-            `).join('');
-        }
+
+                <div class="form-group" style="margin-bottom:0;">
+                    <label class="form-label">
+                        Tag:
+                    </label>
+
+                    <input
+                        type="text"
+                        class="form-input player-tag"
+                        placeholder="#12345"
+                        value="${escapeHtml(player.tag || '')}"
+                        required
+                        pattern="#[A-Za-z0-9]+">
+                </div>
+
+                <div class="form-group" style="margin-bottom:0;">
+                    <label class="form-label">
+                        Troféus:
+                    </label>
+
+                    <input
+                        type="number"
+                        class="form-input player-trophies"
+                        placeholder="Ex: 25000"
+                        min="0"
+                        value="${player.trophies || 0}">
+                </div>
+
+            </div>
+        `;
+
+    }).join('');
+
+}
 
 async function handleCreateTeam(e) {
             e.preventDefault();
