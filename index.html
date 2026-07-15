@@ -2255,23 +2255,25 @@ async function handleLogin(e) {
         
         if (userDoc.exists()) {
             const data = userDoc.data();
-            currentUser = {
-                id: cred.user.uid,
-                name: data.name,
-                nick: data.nick,
-                tag: data.tag,
-                email: data.email,
-                teamId: data.teamId || null
-            };
+currentUser = {
+    id: cred.user.uid,
+    name: data.name,
+    nick: data.nick,
+    tag: data.tag,
+    email: data.email,
+    teamId: data.teamId || null,
+    isAdmin: data.admin === true
+};
         } else {
-            currentUser = {
-                id: cred.user.uid,
-                name: email.split('@')[0],
-                nick: '',
-                tag: '',
-                email: email,
-                teamId: null
-            };
+currentUser = {
+    id: cred.user.uid,
+    name: email.split('@')[0],
+    nick: '',
+    tag: '',
+    email: email,
+    teamId: null,
+    isAdmin: false
+};
         }
         
         if (rememberMe) {
