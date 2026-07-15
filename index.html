@@ -3490,29 +3490,42 @@ players.push({
 
             <hr style="margin:2rem 0;border:1px solid rgba(255,255,255,.08);">
 
-            <h4 style="color:var(--gold);margin-bottom:1rem;">
-                👑 Painel Administrativo
-            </h4>
+            <h4 style="
+    color: var(--gold);
+    margin-bottom: 1rem;
+    text-align: center;
+">
+    👑 Painel Administrativo
+</h4>
 
-            <div style="display:flex;gap:.75rem;flex-wrap:wrap;">
+<div style="
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .75rem;
+">
 
-                <button class="btn btn-warning"
-                    onclick="adminEditTeam('${team.id}')">
+    <button
+        class="btn btn-warning"
+        style="width:220px;justify-content:center;"
+        onclick="adminEditTeam('${team.id}')">
 
-                    <i class="fas fa-pen"></i>
-                    Editar Equipe
+        <i class="fas fa-pen"></i>
+        Editar Equipe
 
-                </button>
+    </button>
 
-                <button class="btn btn-danger"
-                    onclick="deleteTeam('${team.id}')">
+    <button
+        class="btn btn-danger"
+        style="width:220px;justify-content:center;"
+        onclick="deleteTeam('${team.id}')">
 
-                    <i class="fas fa-trash"></i>
-                    Excluir Equipe
+        <i class="fas fa-trash"></i>
+        Excluir Equipe
 
-                </button>
+    </button>
 
-            </div>
+</div>
 
         ` : ""}
 
