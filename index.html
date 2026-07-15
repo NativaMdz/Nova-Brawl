@@ -3844,43 +3844,67 @@ function init() {
     
     // Listener do Firebase - mantém login ao recarregar a página
     let teamsListenerStarted = false;
-    onAuthStateChanged(auth, async (user) => {
-        if (user) {
-            const storedUser = localStorage.getItem('novaBrawlCurrentUser');
-            const sessionUser = sessionStorage.getItem('novaBrawlCurrentUser');
-            
-            if (storedUser || sessionUser) {
-                currentUser = JSON.parse(storedUser || sessionUser);
-            } else {
-                try {
-                    const userDoc = await getDoc(doc(db, "users", user.uid));
-                    if (userDoc.exists()) {
-                        const data = userDoc.data();
-                        currentUser = {
-                            id: user.uid,
-                            name: data.name,
-                            nick: data.nick,
-                            tag: data.tag,
-                            email: data.email,
-                            teamId: data.teamId || null
-                        };
-                        sessionStorage.setItem('novaBrawlCurrentUser', JSON.stringify(currentUser));
-                    }
-                } catch (err) {}
-            }
+onAuthStateChanged(auth, async (user) => {
+    if (user) {
+
+        const storedUser = localStorage.getItem('novaBrawlCurrentUser');
+        const sessionUser = sessionStorage.getItem('novaBrawlCurrentUser');
+
+        if (storedUser || sessionUser) {
+
+            currentUser = JSON.parse(storedUser || sessionUser);
+
         } else {
-            currentUser = null;
-            localStorage.removeItem('novaBrawlCurrentUser');
-            sessionStorage.removeItem('novaBrawlCurrentUser');
+
+            try {
+
+                const userDoc = await getDoc(doc(db, "users", user.uid));
+
+                if (userDoc.exists()) {
+
+                    const data = userDoc.data();
+
+                    currentUser = {
+                        id: user.uid,
+                        name: data.name,
+                        nick: data.nick,
+                        tag: data.tag,
+                        email: data.email,
+                        teamId: data.teamId || null,
+                        isAdmin: data.admin === true
+                    };
+
+                    sessionStorage.setItem(
+                        'novaBrawlCurrentUser',
+                        JSON.stringify(currentUser)
+                    );
+
+                }
+
+            } catch (err) {
+                console.error(err);
+            }
+
         }
-        
-updateUI();
-renderAllContent();
-if (!teamsListenerStarted) {
-    loadTeams();
-    teamsListenerStarted = true;
-}
-    });
+
+    } else {
+
+        currentUser = null;
+
+        localStorage.removeItem('novaBrawlCurrentUser');
+        sessionStorage.removeItem('novaBrawlCurrentUser');
+
+    }
+
+    updateUI();
+    renderAllContent();
+
+    if (!teamsListenerStarted) {
+        loadTeams();
+        teamsListenerStarted = true;
+    }
+
+});
     
     // generateParticles();  ← PARTÍCULAS DESATIVADAS
     updateCountdown();
