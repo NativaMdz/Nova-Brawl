@@ -3059,80 +3059,96 @@ async function handleLogout() {
         }
 
         function renderTeamsGrid() {
+
     const container = document.getElementById('teamsGrid');
     const emptyState = document.getElementById('emptyTeams');
+
     if (!container) return;
-    
+
     if (teams.length === 0) {
         container.innerHTML = '';
         if (emptyState) emptyState.style.display = 'block';
         return;
     }
-    
+
     if (emptyState) emptyState.style.display = 'none';
-    
+
     container.innerHTML = teams.map((team, i) => {
-        const logoContent = team.logo 
+
+        const logoContent = team.logo
             ? `<img src="${team.logo}" alt="${team.name}" style="width:100%;height:100%;object-fit:cover;">`
             : getDefaultLogoIcon(i);
+
         const bgStyle = team.logo ? '' : getDefaultLogoStyle(i);
-        
+
+        // Pode editar/excluir somente se for capitão da equipe
+        const isCaptain = currentUser && currentUser.id === team.captainId;
+
         return `
             <div class="team-card glass-hover">
+
                 <div class="team-card-header">
-                    <div class="team-card-logo" style="${bgStyle}">${logoContent}</div>
+                    <div class="team-card-logo" style="${bgStyle}">
+                        ${logoContent}
+                    </div>
+
                     <div class="team-card-info">
                         <h3>${escapeHtml(team.name)}</h3>
                         <p>Win Rate: ${team.winRate || 'N/A'}%</p>
                     </div>
                 </div>
+
                 <div class="team-card-players">
+
                     ${team.players.map(p => `
                         <div class="team-player-badge">
                             <strong>${p.isCaptain ? '👑 ' : ''}${escapeHtml(p.nick)}</strong>
                             <span style="color: var(--white-50);">${escapeHtml(p.tag)}</span>
-                            <span style="color: var(--gold); font-size: 0.75rem;">${(p.trophies || 0).toLocaleString()} 🏆</span>
+                            <span style="color: var(--gold); font-size: .75rem;">
+                                ${(p.trophies || 0).toLocaleString()} 🏆
+                            </span>
                         </div>
                     `).join('')}
+
                 </div>
-                <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-<div style="display:flex;gap:0.5rem;margin-top:1rem;">
 
-    <button class="btn btn-outline btn-sm"
-        style="flex:1;justify-content:center;"
-        onclick="viewTeam('${team.id}')">
+                <div style="display:flex;gap:.5rem;margin-top:1rem;">
 
-        <i class="fas fa-eye"></i> Ver
+                    <button class="btn btn-outline btn-sm"
+                        style="flex:1;justify-content:center;"
+                        onclick="viewTeam('${team.id}')">
 
-    </button>
+                        <i class="fas fa-eye"></i> Ver
 
-    ${
-        currentUser && currentUser.id === team.captainId
-        ? `
-        <button class="btn btn-warning btn-sm"
-            style="flex:1;justify-content:center;"
-            onclick="editTeam('${team.id}')">
+                    </button>
 
-            <i class="fas fa-pen"></i> Editar
+                    ${isCaptain ? `
 
-        </button>
+                        <button class="btn btn-warning btn-sm"
+                            style="flex:1;justify-content:center;"
+                            onclick="editTeam('${team.id}')">
 
-        <button class="btn btn-danger btn-sm"
-            style="flex:1;justify-content:center;"
-            onclick="deleteTeam('${team.id}')">
+                            <i class="fas fa-pen"></i> Editar
 
-            <i class="fas fa-trash"></i> Excluir
+                        </button>
 
-        </button>
-        `
-        : ""
-    }
+                        <button class="btn btn-danger btn-sm"
+                            style="flex:1;justify-content:center;"
+                            onclick="deleteTeam('${team.id}')">
 
-</div>
+                            <i class="fas fa-trash"></i> Excluir
+
+                        </button>
+
+                    ` : ""}
+
                 </div>
+
             </div>
         `;
+
     }).join('');
+
 }
 
         // ===== TEAM MANAGEMENT =====
@@ -3405,55 +3421,127 @@ players.push({
         }
 
         function viewTeam(teamId) {
-            const team = teams.find(t => t.id === teamId) || 
-                        generateRankingData().find(t => t.id === teamId);
-            if (!team) {
-                showNotification('Equipe não encontrada!', 'error');
-                return;
-            }
-            
-            const header = document.getElementById('viewTeamHeader');
-            const body = document.getElementById('viewTeamBody');
-            
-            const logoContent = team.logo 
-                ? `<img src="${team.logo}" alt="" style="width:100px;height:100px;border-radius:50%;object-fit:cover;border:3px solid var(--gold);">`
-                : `<div class="team-logo-placeholder" style="background:linear-gradient(135deg, var(--gold), var(--gold-dark));width:100px;height:100px;margin:0 auto;">
-                    <i class="fas fa-shield-halved"></i>
-                </div>`;
-            
-            header.innerHTML = `
-                ${logoContent}
-                <h2 class="modal-title" style="margin-top: 1rem;">${escapeHtml(team.name)}</h2>
-                <p class="modal-subtitle">Win Rate: ${team.winRate || 'N/A'}% | ELO: ${team.elo || 'N/A'}</p>
-            `;
-            
-            body.innerHTML = `
-                <h4 style="color: var(--gold); margin-bottom: 1rem;"><i class="fas fa-users"></i> Jogadores</h4>
-                <div style="display: grid; gap: 0.8rem;">
-                    ${team.players.map(p => `
-                        <div style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: var(--white-10); border-radius: 0.75rem;">
-                            <div style="width: 50px; height: 50px; border-radius: 50%; background: var(--gold-10); display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
-                                ${p.isCaptain ? '👑' : '🎮'}
-                            </div>
-                            <div>
-                                <strong>${escapeHtml(p.nick)}</strong>
-                                <span style="color: var(--white-50); margin-left: 0.5rem;">${escapeHtml(p.tag)}</span>
-                                <p style="color: var(--gold); font-size: 0.85rem;">${(p.trophies || 0).toLocaleString()} Troféus</p>
-                            </div>
-                            ${p.isCaptain ? '<span style="background: var(--gold); color: var(--black); padding: 0.2rem 0.6rem; border-radius: 1rem; font-size: 0.75rem; margin-left: auto;">Capitão</span>' : ''}
-                        </div>
-                    `).join('')}
+
+    const team = teams.find(t => t.id === teamId) ||
+                 generateRankingData().find(t => t.id === teamId);
+
+    if (!team) {
+        showNotification('Equipe não encontrada!', 'error');
+        return;
+    }
+
+    const header = document.getElementById('viewTeamHeader');
+    const body = document.getElementById('viewTeamBody');
+
+    const logoContent = team.logo
+        ? `<img src="${team.logo}" alt="" style="width:100px;height:100px;border-radius:50%;object-fit:cover;border:3px solid var(--gold);">`
+        : `<div class="team-logo-placeholder" style="background:linear-gradient(135deg, var(--gold), var(--gold-dark));width:100px;height:100px;margin:0 auto;">
+                <i class="fas fa-shield-halved"></i>
+           </div>`;
+
+    header.innerHTML = `
+        ${logoContent}
+        <h2 class="modal-title" style="margin-top:1rem;">
+            ${escapeHtml(team.name)}
+        </h2>
+        <p class="modal-subtitle">
+            Win Rate: ${team.winRate || 'N/A'}% | ELO: ${team.elo || 'N/A'}
+        </p>
+    `;
+
+    body.innerHTML = `
+        <h4 style="color:var(--gold);margin-bottom:1rem;">
+            <i class="fas fa-users"></i> Jogadores
+        </h4>
+
+        <div style="display:grid;gap:.8rem;">
+
+            ${team.players.map(p => `
+                <div style="display:flex;align-items:center;gap:1rem;padding:1rem;background:var(--white-10);border-radius:.75rem;">
+
+                    <div style="width:50px;height:50px;border-radius:50%;background:var(--gold-10);display:flex;align-items:center;justify-content:center;font-size:1.5rem;">
+                        ${p.isCaptain ? "👑" : "🎮"}
+                    </div>
+
+                    <div>
+                        <strong>${escapeHtml(p.nick)}</strong>
+                        <span style="color:var(--white-50);margin-left:.5rem;">
+                            ${escapeHtml(p.tag)}
+                        </span>
+
+                        <p style="color:var(--gold);font-size:.85rem;">
+                            ${(p.trophies || 0).toLocaleString()} Troféus
+                        </p>
+                    </div>
+
+                    ${p.isCaptain
+                        ? `<span style="background:var(--gold);color:var(--black);padding:.2rem .6rem;border-radius:1rem;font-size:.75rem;margin-left:auto;">
+                            Capitão
+                           </span>`
+                        : ""
+                    }
+
                 </div>
-            `;
-            
-            openModal('viewTeamModal');
-        }
+            `).join("")}
+
+        </div>
+
+        ${currentUser?.isAdmin ? `
+
+            <hr style="margin:2rem 0;border:1px solid rgba(255,255,255,.08);">
+
+            <h4 style="color:var(--gold);margin-bottom:1rem;">
+                👑 Painel Administrativo
+            </h4>
+
+            <div style="display:flex;gap:.75rem;flex-wrap:wrap;">
+
+                <button class="btn btn-warning"
+                    onclick="editTeam('${team.id}')">
+
+                    <i class="fas fa-pen"></i>
+                    Editar Equipe
+
+                </button>
+
+                <button class="btn btn-danger"
+                    onclick="deleteTeam('${team.id}')">
+
+                    <i class="fas fa-trash"></i>
+                    Excluir Equipe
+
+                </button>
+
+            </div>
+
+        ` : ""}
+
+    `;
+
+    openModal("viewTeamModal");
+
+}
         
 function editTeam(teamId) {
 
     const team = teams.find(t => t.id === teamId);
 
-    if (!team) return;
+    if (!team) {
+        showNotification("Equipe não encontrada!", "error");
+        return;
+    }
+
+    // Apenas o capitão da equipe ou um administrador podem editar
+    if (
+        team.captainId !== currentUser.id &&
+        !currentUser?.isAdmin
+    ) {
+        showNotification(
+            "Você não tem permissão para editar esta equipe.",
+            "error"
+        );
+        return;
+    }
 
     editingTeamId = team.id;
 
@@ -3510,9 +3598,15 @@ async function deleteTeam(teamId) {
 
         const team = teamSnap.data();
 
-        // Apenas o capitão pode excluir
-        if (team.captainId !== currentUser.id) {
-            showNotification("Somente o capitão pode excluir a equipe.", "error");
+        // Apenas o capitão OU um administrador podem excluir
+        if (
+            team.captainId !== currentUser.id &&
+            !currentUser?.isAdmin
+        ) {
+            showNotification(
+                "Você não tem permissão para excluir esta equipe.",
+                "error"
+            );
             return;
         }
 
@@ -3522,30 +3616,59 @@ async function deleteTeam(teamId) {
             if (!player.uid) continue;
 
             try {
+
                 await updateDoc(doc(db, "users", player.uid), {
                     teamId: null
                 });
-            } catch (e) {}
+
+            } catch (e) {
+                console.error(e);
+            }
 
         }
 
-        // Remove também do capitão
-        await updateDoc(doc(db, "users", currentUser.id), {
-            teamId: null
-        });
+        // Se quem está apagando for o próprio capitão,
+        // remove também o teamId dele.
+        if (team.captainId === currentUser.id) {
+
+            await updateDoc(doc(db, "users", currentUser.id), {
+                teamId: null
+            });
+
+            currentUser.teamId = null;
+
+        } else {
+
+            // Se for um administrador apagando a equipe de outra pessoa,
+            // remove o teamId do capitão verdadeiro.
+            try {
+
+                await updateDoc(doc(db, "users", team.captainId), {
+                    teamId: null
+                });
+
+            } catch (e) {
+                console.error(e);
+            }
+
+        }
 
         // Exclui a equipe
         await deleteDoc(teamRef);
 
-        currentUser.teamId = null;
-
-        showNotification("Equipe removida com sucesso!", "success");
+        showNotification(
+            "Equipe removida com sucesso!",
+            "success"
+        );
 
     } catch (err) {
 
         console.error(err);
 
-        showNotification("Erro ao excluir equipe.", "error");
+        showNotification(
+            "Erro ao excluir equipe.",
+            "error"
+        );
 
     }
 
