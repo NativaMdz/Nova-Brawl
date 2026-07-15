@@ -3689,10 +3689,16 @@ async function deleteTeam(teamId) {
         // Exclui a equipe
         await deleteDoc(teamRef);
 
-        showNotification(
-            "Equipe removida com sucesso!",
-            "success"
-        );
+        closeModal("viewTeamModal");
+
+setTimeout(() => {
+    showSection("teams");
+}, 150);
+
+showNotification(
+    "Equipe removida com sucesso!",
+    "success"
+);
 
     } catch (err) {
 
