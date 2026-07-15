@@ -3497,7 +3497,7 @@ players.push({
             <div style="display:flex;gap:.75rem;flex-wrap:wrap;">
 
                 <button class="btn btn-warning"
-                    onclick="editTeam('${team.id}')">
+                    onclick="adminEditTeam('${team.id}')">
 
                     <i class="fas fa-pen"></i>
                     Editar Equipe
@@ -3519,6 +3519,16 @@ players.push({
     `;
 
     openModal("viewTeamModal");
+
+}
+        
+        function adminEditTeam(teamId) {
+
+    closeModal("viewTeamModal");
+
+    setTimeout(() => {
+        editTeam(teamId);
+    }, 150);
 
 }
         
