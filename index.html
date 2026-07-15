@@ -2255,14 +2255,15 @@ async function handleLogin(e) {
         
         if (userDoc.exists()) {
             const data = userDoc.data();
-            currentUser = {
-                id: cred.user.uid,
-                name: data.name,
-                nick: data.nick,
-                tag: data.tag,
-                email: data.email,
-                teamId: data.teamId || null
-            };
+currentUser = {
+    id: cred.user.uid,
+    name: data.name,
+    nick: data.nick,
+    tag: data.tag,
+    email: data.email,
+    teamId: data.teamId || null,
+    isAdmin: data.admin === true
+};
         } else {
             currentUser = {
                 id: cred.user.uid,
@@ -2333,6 +2334,7 @@ async function handleRegister(e) {
             tag,
             email,
             teamId: null,
+            admin: false
             createdAt: new Date().toISOString()
         });
 
@@ -3854,14 +3856,15 @@ function init() {
                     const userDoc = await getDoc(doc(db, "users", user.uid));
                     if (userDoc.exists()) {
                         const data = userDoc.data();
-                        currentUser = {
-                            id: user.uid,
-                            name: data.name,
-                            nick: data.nick,
-                            tag: data.tag,
-                            email: data.email,
-                            teamId: data.teamId || null
-                        };
+currentUser = {
+    id: user.uid,
+    name: data.name,
+    nick: data.nick,
+    tag: data.tag,
+    email: data.email,
+    teamId: data.teamId || null,
+    isAdmin: data.admin === true
+};
                         sessionStorage.setItem('novaBrawlCurrentUser', JSON.stringify(currentUser));
                     }
                 } catch (err) {}
