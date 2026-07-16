@@ -2961,7 +2961,11 @@ function openProfileModal() {
             });
         }
     }, 200);
-    alert(document.getElementById("profileBody").innerHTML);
+    document.getElementById("profileBody").style.display = "block";
+document.getElementById("profileBody").style.visibility = "visible";
+document.getElementById("profileBody").style.opacity = "1";
+document.getElementById("profileBody").style.height = "auto";
+document.getElementById("profileBody").style.overflow = "visible";
     openModal('profileModal');
 }
 
