@@ -1759,6 +1759,51 @@ input[type="checkbox"] {
     align-items: center;
     gap: 0.5rem;
 }
+
+/* Perfil Público */
+.public-profile-header {
+    text-align: center;
+    padding: 1rem;
+}
+
+.public-avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    border: 3px solid var(--gold);
+    object-fit: cover;
+    margin: 0 auto;
+    background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    color: var(--black);
+    font-weight: 700;
+}
+
+.status-indicator {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 0.3rem;
+}
+
+.status-indicator.online { background: #10b981; }
+.status-indicator.away { background: #f59e0b; }
+.status-indicator.busy { background: #ef4444; }
+
+.player-clickable {
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.player-clickable:hover {
+    color: var(--gold) !important;
+    transform: scale(1.05);
+}
+
     </style>
 </head>
 <body>
@@ -2160,6 +2205,25 @@ input[type="checkbox"] {
                 <div class="profile-avatar-overlay" onclick="document.getElementById('profilePhotoInput2').click()">
                     <i class="fas fa-camera" style="font-size: 0.9rem; color: var(--black);"></i>
                 </div>
+                
+              <!-- MODAL DE PERFIL PÚBLICO -->
+<div class="modal-overlay" id="publicProfileModal">
+    <div class="modal modal-lg">
+        <div class="modal-header">
+            <div class="public-avatar" id="publicAvatar"></div>
+            <div class="status-dot" id="publicStatusDot" style="position: relative; margin: -15px auto 0; left: 30px;"></div>
+            <h2 class="modal-title" id="publicName" style="margin-top: 0.5rem;"></h2>
+            <p class="modal-subtitle" id="publicTag"></p>
+        </div>        
+        <div id="publicProfileBody"></div>
+        
+        <div style="text-align: center; margin-top: 1.5rem;">
+            <button class="btn btn-outline" onclick="closeModal('publicProfileModal')">
+                <i class="fas fa-times"></i> Fechar
+            </button>
+        </div>
+    </div>
+</div>                
                 <div class="status-dot" id="profileStatusDot"></div>
             </div>
             <h2 class="modal-title" id="profileName" style="margin-top: 1rem;"></h2>
@@ -2642,6 +2706,122 @@ async function handleLogout() {
             handleResponsive();
             renderAllContent();
         }
+
+// ===== PUBLIC PROFILE =====
+async function viewPlayerProfile(playerTag) {
+    if (!playerTag) return;
+    
+    try {
+        // Buscar usuário pela tag
+        var q = query(collection(db, "users"), where("tag", "==", playerTag));
+        var snap = await getDocs(q);
+        
+        if (snap.empty) {
+            showNotification('Jogador não encontrado!', 'error');
+            return;
+        }
+        
+        var userData = snap.docs[0].data();
+        var userId = snap.docs[0].id;
+        
+        // Preencher avatar
+        var publicAvatar = document.getElementById('publicAvatar');
+        if (userData.photoURL) {
+            publicAvatar.innerHTML = '<img src="' + userData.photoURL + '" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">';
+            publicAvatar.style.background = 'none';
+        } else {
+            publicAvatar.innerHTML = (userData.name || '?').charAt(0).toUpperCase();
+            publicAvatar.style.background = 'linear-gradient(135deg, var(--gold), var(--gold-dark))';
+        }
+        
+        // Status
+        var statusDot = document.getElementById('publicStatusDot');
+        statusDot.className = 'status-dot ' + (userData.status || 'online');
+        
+        // Nome e tag
+        document.getElementById('publicName').textContent = userData.name || 'Desconhecido';
+        document.getElementById('publicTag').textContent = userData.tag || 'Sem tag';
+        
+        // Buscar equipe do jogador
+        var userTeam = null;
+        if (teams && teams.length > 0) {
+            userTeam = teams.find(function(t) {
+                return t.players && t.players.some(function(p) {
+                    return p.tag === playerTag;
+                });
+            });
+        }
+        
+        // Status texto
+        var statusText = {
+            'online': '🟢 Online',
+            'away': '🟡 Ausente',
+            'busy': '🔴 Ocupado'
+        };
+        
+        document.getElementById('publicProfileBody').innerHTML = 
+            '<div class="profile-section-title">' +
+                '<i class="fas fa-info-circle"></i> Informações' +
+            '</div>' +
+            
+            '<div class="info-item">' +
+                '<i class="fas fa-gamepad"></i>' +
+                '<span><strong>Nick:</strong> ' + escapeHtml(userData.nick || 'Não definido') + '</span>' +
+            '</div>' +
+            
+            '<div class="info-item">' +
+                '<i class="fas fa-circle"></i>' +
+                '<span><strong>Status:</strong> ' + (statusText[userData.status] || '🟢 Online') + '</span>' +
+            '</div>' +
+            
+            (userData.bio ? 
+                '<div class="info-item">' +
+                    '<i class="fas fa-quote-right"></i>' +
+                    '<span><em>"' + escapeHtml(userData.bio) + '"</em></span>' +
+                '</div>'
+            : '') +
+            
+            '<div class="profile-section-title">' +
+                '<i class="fas fa-users"></i> Equipe' +
+            '</div>' +
+            
+            (userTeam ? 
+                '<div class="info-item">' +
+                    '<i class="fas fa-shield-halved"></i>' +
+                    '<span><strong>' + escapeHtml(userTeam.name) + '</strong></span>' +
+                    '<button class="btn btn-outline btn-sm" style="margin-left: auto;" onclick="viewTeam(\'' + userTeam.id + '\'); closeModal(\'publicProfileModal\');">' +
+                        '<i class="fas fa-eye"></i> Ver Equipe' +
+                    '</button>' +
+                '</div>'
+            : 
+                '<div class="info-item" style="justify-content: center;">' +
+                    '<i class="fas fa-users-slash"></i>' +
+                    '<span>Nenhuma equipe</span>' +
+                '</div>'
+            ) +
+            
+            '<div class="profile-section-title">' +
+                '<i class="fas fa-chart-bar"></i> Estatísticas' +
+            '</div>' +
+            
+            '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">' +
+                '<div class="info-item">' +
+                    '<i class="fas fa-trophy"></i>' +
+                    '<span><strong>' + (userData.tournamentsPlayed || 0) + '</strong> campeonatos</span>' +
+                '</div>' +
+                '<div class="info-item">' +
+                    '<i class="fas fa-medal"></i>' +
+                    '<span><strong>' + (userData.tournamentsWon || 0) + '</strong> vitórias</span>' +
+                '</div>' +
+            '</div>';
+        
+        openModal('publicProfileModal');
+        
+    } catch (err) {
+        console.error('Erro ao carregar perfil:', err);
+        showNotification('Erro ao carregar perfil!', 'error');
+    }
+}
 
 // ===== PROFILE FUNCTIONS =====
 function openProfileModal() {
@@ -3513,13 +3693,13 @@ async function saveProfileChanges() {
                 <div class="team-card-players">
 
                     ${team.players.map(p => `
-                        <div class="team-player-badge">
-                            <strong>${p.isCaptain ? '👑 ' : ''}${escapeHtml(p.nick)}</strong>
-                            <span style="color: var(--white-50);">${escapeHtml(p.tag)}</span>
-                            <span style="color: var(--gold); font-size: .75rem;">
-                                ${(p.trophies || 0).toLocaleString()} 🏆
-                            </span>
-                        </div>
+<div class="team-player-badge player-clickable" onclick="event.stopPropagation(); viewPlayerProfile('${escapeHtml(p.tag)}');">
+    <strong>${p.isCaptain ? '👑 ' : ''}${escapeHtml(p.nick)}</strong>
+    <span style="color: var(--white-50);">${escapeHtml(p.tag)}</span>
+    <span style="color: var(--gold); font-size: .75rem;">
+        ${(p.trophies || 0).toLocaleString()} 🏆
+    </span>
+</div>
                     `).join('')}
 
                 </div>
@@ -3869,7 +4049,7 @@ players.push({
         <div style="display:grid;gap:.8rem;">
 
             ${team.players.map(p => `
-                <div style="display:flex;align-items:center;gap:1rem;padding:1rem;background:var(--white-10);border-radius:.75rem;">
+<div style="display:flex;align-items:center;gap:1rem;padding:1rem;background:var(--white-10);border-radius:.75rem;cursor:pointer;" onclick="closeModal('viewTeamModal'); viewPlayerProfile('${escapeHtml(p.tag)}');">
 
                     <div style="width:50px;height:50px;border-radius:50%;background:var(--gold-10);display:flex;align-items:center;justify-content:center;font-size:1.5rem;">
                         ${p.isCaptain ? "👑" : "🎮"}
