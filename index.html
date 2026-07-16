@@ -2812,129 +2812,139 @@ async function viewPlayerProfile(playerTag) {
     }
 }
 
+// ===== PROFILE FUNCTIONS =====
 function openProfileModal() {
     if (!currentUser) return;
     
     closeDropdown();
     
-    // Abre o modal primeiro
-    openModal('profileModal');
+    // Preencher avatar
+    var avatarLarge = document.getElementById('profileAvatarLarge');
+    if (!avatarLarge) {
+        console.error('profileAvatarLarge não encontrado');
+        return;
+    }
     
-    // Aguarda um pouco para o modal renderizar e depois preenche
-    setTimeout(function() {
-        
-        // Avatar
-        var avatarLarge = document.getElementById('profileAvatarLarge');
-        if (avatarLarge) {
-            if (currentUser.photoURL) {
-                avatarLarge.src = currentUser.photoURL;
-                avatarLarge.style.display = 'block';
-                avatarLarge.innerHTML = '';
-                avatarLarge.style.background = 'none';
-            } else {
-                avatarLarge.src = '';
-                avatarLarge.style.display = 'flex';
-                avatarLarge.style.alignItems = 'center';
-                avatarLarge.style.justifyContent = 'center';
-                avatarLarge.style.fontSize = '3rem';
-                avatarLarge.style.color = 'var(--black)';
-                avatarLarge.style.background = 'linear-gradient(135deg, var(--gold), var(--gold-dark))';
-                avatarLarge.innerHTML = currentUser.name.charAt(0).toUpperCase();
-            }
-        }
-        
-        // Status dot
-        var statusDot = document.getElementById('profileStatusDot');
-        if (statusDot) {
-            statusDot.className = 'status-dot ' + (currentUser.status || 'online');
-        }
-        
-        // Nome e tag
-        var nameEl = document.getElementById('profileName');
-        var tagEl = document.getElementById('profileTag');
-        if (nameEl) nameEl.textContent = currentUser.name || '';
-        if (tagEl) tagEl.textContent = currentUser.tag || 'Sem tag';
-        
-        // Buscar equipe
-        var userTeam = null;
-        if (teams && teams.length > 0) {
-            for (var i = 0; i < teams.length; i++) {
-                if (teams[i].players) {
-                    for (var j = 0; j < teams[i].players.length; j++) {
-                        if (teams[i].players[j].tag === currentUser.tag) {
-                            userTeam = teams[i];
-                            break;
-                        }
+    if (currentUser.photoURL) {
+        avatarLarge.src = currentUser.photoURL;
+        avatarLarge.style.display = 'block';
+        avatarLarge.style.fontSize = '0';
+        avatarLarge.innerHTML = '';
+        avatarLarge.style.background = 'none';
+    } else {
+        avatarLarge.src = '';
+        avatarLarge.style.display = 'flex';
+        avatarLarge.style.alignItems = 'center';
+        avatarLarge.style.justifyContent = 'center';
+        avatarLarge.style.fontSize = '3rem';
+        avatarLarge.style.color = 'var(--black)';
+        avatarLarge.style.background = 'linear-gradient(135deg, var(--gold), var(--gold-dark))';
+        avatarLarge.innerHTML = currentUser.name.charAt(0).toUpperCase();
+    }
+    
+    // Status dot
+    var statusDot = document.getElementById('profileStatusDot');
+    if (statusDot) {
+        statusDot.className = 'status-dot ' + (currentUser.status || 'online');
+    }
+    
+    // Nome e tag
+    var nameEl = document.getElementById('profileName');
+    var tagEl = document.getElementById('profileTag');
+    if (nameEl) nameEl.textContent = currentUser.name || '';
+    if (tagEl) tagEl.textContent = currentUser.tag || 'Sem tag';
+    
+    // Buscar equipe do usuário
+    var userTeam = null;
+    if (teams && teams.length > 0) {
+        for (var i = 0; i < teams.length; i++) {
+            var t = teams[i];
+            if (t.players) {
+                for (var j = 0; j < t.players.length; j++) {
+                    if (t.players[j].tag === currentUser.tag) {
+                        userTeam = t;
+                        break;
                     }
                 }
-                if (userTeam) break;
             }
+            if (userTeam) break;
         }
+    }
+    
+    var bioLength = (currentUser.bio || '').length;
+    
+    var bodyEl = document.getElementById('profileBody');
+    if (!bodyEl) {
+        console.error('profileBody não encontrado');
+        return;
+    }
+    
+    bodyEl.innerHTML = 
+        '<div class="profile-section-title">' +
+            '<i class="fas fa-user-edit"></i> Informações do Perfil' +
+        '</div>' +
         
-        // CORPO DO PERFIL
-        var bodyEl = document.getElementById('profileBody');
-        if (!bodyEl) {
-            alert('ERRO: profileBody não encontrado!');
-            return;
-        }
+        '<div class="form-group">' +
+            '<label class="form-label"><i class="fas fa-gamepad"></i> Nick no Brawl Stars</label>' +
+            '<input type="text" class="form-input" id="editNick" value="' + escapeHtml(currentUser.nick || '') + '" placeholder="Seu nick">' +
+        '</div>' +
         
-        var html = '';
+        '<div class="form-group">' +
+            '<label class="form-label"><i class="fas fa-hashtag"></i> Tag do Brawl Stars</label>' +
+            '<input type="text" class="form-input" id="editTag" value="' + escapeHtml(currentUser.tag || '') + '" placeholder="#123ABC" pattern="#[A-Za-z0-9]+">' +
+        '</div>' +
         
-        // Título
-        html += '<div class="profile-section-title"><i class="fas fa-user-edit"></i> Informações do Perfil</div>';
+        '<div class="form-group">' +
+            '<label class="form-label"><i class="fas fa-circle"></i> Status</label>' +
+            '<select class="form-select" id="editStatus">' +
+                '<option value="online" ' + ((currentUser.status || 'online') === 'online' ? 'selected' : '') + '>🟢 Online</option>' +
+                '<option value="away" ' + (currentUser.status === 'away' ? 'selected' : '') + '>🟡 Ausente</option>' +
+                '<option value="busy" ' + (currentUser.status === 'busy' ? 'selected' : '') + '>🔴 Ocupado</option>' +
+            '</select>' +
+        '</div>' +
         
-        // Nick
-        html += '<div class="form-group">';
-        html += '<label class="form-label"><i class="fas fa-gamepad"></i> Nick no Brawl Stars</label>';
-        html += '<input type="text" class="form-input" id="editNick" value="' + escapeHtml(currentUser.nick || '') + '" placeholder="Seu nick">';
-        html += '</div>';
+        '<div class="form-group">' +
+            '<label class="form-label"><i class="fas fa-quote-right"></i> Bio</label>' +
+            '<textarea class="form-textarea bio-textarea" id="editBio" placeholder="Conte um pouco sobre você..." maxlength="200">' + escapeHtml(currentUser.bio || '') + '</textarea>' +
+            '<small style="color: var(--white-30);">' + bioLength + '/200 caracteres</small>' +
+        '</div>' +
         
-        // Tag
-        html += '<div class="form-group">';
-        html += '<label class="form-label"><i class="fas fa-hashtag"></i> Tag do Brawl Stars</label>';
-        html += '<input type="text" class="form-input" id="editTag" value="' + escapeHtml(currentUser.tag || '') + '" placeholder="#123ABC">';
-        html += '</div>';
+        '<div class="profile-section-title">' +
+            '<i class="fas fa-users"></i> Equipe' +
+        '</div>' +
         
-        // Status
-        html += '<div class="form-group">';
-        html += '<label class="form-label"><i class="fas fa-circle"></i> Status</label>';
-        html += '<select class="form-select" id="editStatus">';
-        html += '<option value="online" ' + ((currentUser.status || 'online') === 'online' ? 'selected' : '') + '>🟢 Online</option>';
-        html += '<option value="away" ' + (currentUser.status === 'away' ? 'selected' : '') + '>🟡 Ausente</option>';
-        html += '<option value="busy" ' + (currentUser.status === 'busy' ? 'selected' : '') + '>🔴 Ocupado</option>';
-        html += '</select>';
-        html += '</div>';
+        (userTeam ? 
+            '<div class="info-item">' +
+                '<i class="fas fa-shield-halved"></i>' +
+                '<span><strong>' + escapeHtml(userTeam.name) + '</strong></span>' +
+                '<button class="btn btn-outline btn-sm" style="margin-left: auto;" onclick="viewTeam(\'' + userTeam.id + '\'); closeModal(\'profileModal\');">' +
+                    '<i class="fas fa-eye"></i> Ver' +
+                '</button>' +
+            '</div>'
+        : 
+            '<div class="info-item" style="justify-content: center;">' +
+                '<i class="fas fa-users-slash"></i>' +
+                '<span>Nenhuma equipe</span>' +
+            '</div>'
+        ) +
         
-        // Bio
-        html += '<div class="form-group">';
-        html += '<label class="form-label"><i class="fas fa-quote-right"></i> Bio</label>';
-        html += '<textarea class="form-textarea bio-textarea" id="editBio" placeholder="Conte um pouco sobre você..." maxlength="200">' + escapeHtml(currentUser.bio || '') + '</textarea>';
-        html += '<small style="color: var(--white-30);">' + (currentUser.bio || '').length + '/200 caracteres</small>';
-        html += '</div>';
+        '<div class="profile-section-title">' +
+            '<i class="fas fa-chart-bar"></i> Estatísticas' +
+        '</div>' +
         
-        // Equipe
-        html += '<div class="profile-section-title"><i class="fas fa-users"></i> Equipe</div>';
-        if (userTeam) {
-            html += '<div class="info-item">';
-            html += '<i class="fas fa-shield-halved"></i>';
-            html += '<span><strong>' + escapeHtml(userTeam.name) + '</strong></span>';
-            html += '<button class="btn btn-outline btn-sm" style="margin-left:auto;" onclick="viewTeam(\'' + userTeam.id + '\');closeModal(\'profileModal\');"><i class="fas fa-eye"></i> Ver</button>';
-            html += '</div>';
-        } else {
-            html += '<div class="info-item" style="justify-content:center;"><i class="fas fa-users-slash"></i><span>Nenhuma equipe</span></div>';
-        }
-        
-        // Estatísticas
-        html += '<div class="profile-section-title"><i class="fas fa-chart-bar"></i> Estatísticas</div>';
-        html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">';
-        html += '<div class="info-item"><i class="fas fa-trophy"></i><span><strong>' + (currentUser.tournamentsPlayed || 0) + '</strong> campeonatos</span></div>';
-        html += '<div class="info-item"><i class="fas fa-medal"></i><span><strong>' + (currentUser.tournamentsWon || 0) + '</strong> vitórias</span></div>';
-        html += '</div>';
-        
-        // Injeta o HTML
-        bodyEl.innerHTML = html;
-        
-        // Contador da bio
+        '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">' +
+            '<div class="info-item">' +
+                '<i class="fas fa-trophy"></i>' +
+                '<span><strong>' + (currentUser.tournamentsPlayed || 0) + '</strong> campeonatos</span>' +
+            '</div>' +
+            '<div class="info-item">' +
+                '<i class="fas fa-medal"></i>' +
+                '<span><strong>' + (currentUser.tournamentsWon || 0) + '</strong> vitórias</span>' +
+            '</div>' +
+        '</div>';
+    
+    // Atualizar contador da bio
+    setTimeout(function() {
         var bioTextarea = document.getElementById('editBio');
         if (bioTextarea) {
             bioTextarea.addEventListener('input', function() {
@@ -2943,7 +2953,6 @@ function openProfileModal() {
             });
         }
         
-        // Status dot
         var statusSelect = document.getElementById('editStatus');
         if (statusSelect) {
             statusSelect.addEventListener('change', function() {
@@ -2951,8 +2960,12 @@ function openProfileModal() {
                 if (dot) dot.className = 'status-dot ' + this.value;
             });
         }
-        
-    }, 300); // Fim do setTimeout
+    }, 200);
+    console.log("ANTES:", document.getElementById("profileBody").innerHTML.length);
+    openModal('profileModal');
+    setTimeout(() => {
+    console.log("DEPOIS:", document.getElementById("profileBody").innerHTML.length);
+}, 100);
 }
 
 async function saveProfileChanges() {
@@ -2997,7 +3010,7 @@ async function saveProfileChanges() {
             }
         }
         
-        closeModal('profileModal');
+        closeModal('');
         updateUI();
         showNotification('Perfil atualizado com sucesso! 🎉', 'success');
         
