@@ -2200,11 +2200,15 @@ input[type="checkbox"] {
     <div class="modal modal-lg" style="text-align: center;">
         <div class="modal-header">
             <div id="publicAvatarContainer" style="width: 100px; height: 100px; border-radius: 50%; border: 3px solid var(--gold); margin: 0 auto; background: linear-gradient(135deg, var(--gold), var(--gold-dark)); display: flex; align-items: center; justify-content: center; font-size: 2.5rem; color: var(--black); font-weight: 700; overflow: hidden;"></div>
+
             <div id="publicStatusIndicator" style="width: 14px; height: 14px; border-radius: 50%; margin: -10px auto 0; position: relative; left: 28px; border: 2px solid var(--gray-dark);"></div>
+
             <h2 class="modal-title" id="publicPlayerName" style="margin-top: 0.8rem;">Carregando...</h2>
             <p class="modal-subtitle" id="publicPlayerTag"></p>
         </div>
+
         <div id="publicPlayerInfo" style="text-align: left;"></div>
+
         <div style="text-align: center; margin-top: 1.5rem;">
             <button class="btn btn-outline" onclick="closeModal('publicProfileModal')">
                 <i class="fas fa-times"></i> Fechar
@@ -2212,48 +2216,32 @@ input[type="checkbox"] {
         </div>
     </div>
 </div>
-                <div class="status-dot" id="profileStatusDot"></div>
-            </div>
-            <h2 class="modal-title" id="profileName" style="margin-top: 1rem;"></h2>
-            <p class="modal-subtitle" id="profileTag"></p>
-            <input type="file" id="profilePhotoInput2" accept="image/*" style="display: none;" onchange="handleProfilePhotoUpload2(event)">
+
+<div class="modal-overlay" id="supportChatModal">
+    <div class="modal modal-lg">
+        <div class="modal-header">
+            <h2 class="modal-title">Chat de <span class="text-gold">Suporte</span></h2>
+            <p class="modal-subtitle" id="supportChatTitle">Ticket #<span id="supportTicketId"></span></p>
         </div>
-        
-        <div id="publicProfileBody">
-            <!-- Preenchido dinamicamente -->
-        </div>
-        
-        <div style="text-align: center; margin-top: 1.5rem; display: flex; gap: 0.8rem; justify-content: center;">
-            <button class="btn btn-outline" onclick="closeModal('profileModal')">
-                <i class="fas fa-times"></i> Fechar
+
+        <div class="chat-messages" id="supportChatMessages"></div>
+
+        <div style="display: flex; gap: 0.5rem;">
+            <input type="text" class="form-input" id="supportChatInput" placeholder="Digite sua mensagem..." onkeypress="if(event.key==='Enter')sendSupportMessage()">
+            <button class="btn btn-primary" onclick="sendSupportMessage()">
+                <i class="fas fa-paper-plane"></i>
             </button>
-            <button class="btn btn-primary" onclick="saveProfileChanges()">
-                <i class="fas fa-save"></i> Salvar Alterações
+        </div>
+
+        <div style="text-align: center; margin-top: 1rem;">
+            <button class="btn btn-outline btn-sm" onclick="closeModal('supportChatModal')">
+                Fechar Chat
             </button>
         </div>
     </div>
 </div>
 
-    <div class="modal-overlay" id="supportChatModal">
-        <div class="modal modal-lg">
-            <div class="modal-header">
-                <h2 class="modal-title">Chat de <span class="text-gold">Suporte</span></h2>
-                <p class="modal-subtitle" id="supportChatTitle">Ticket #<span id="supportTicketId"></span></p>
-            </div>
-            <div class="chat-messages" id="supportChatMessages"></div>
-            <div style="display: flex; gap: 0.5rem;">
-                <input type="text" class="form-input" id="supportChatInput" placeholder="Digite sua mensagem..." onkeypress="if(event.key==='Enter')sendSupportMessage()">
-                <button class="btn btn-primary" onclick="sendSupportMessage()">
-                    <i class="fas fa-paper-plane"></i>
-                </button>
-            </div>
-            <div style="text-align: center; margin-top: 1rem;">
-                <button class="btn btn-outline btn-sm" onclick="closeModal('supportChatModal')">Fechar Chat</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="toast-container" id="toastContainer"></div>
+<div class="toast-container" id="toastContainer"></div>
 
     <script>
         // ===== DATA STORE =====
@@ -2846,7 +2834,7 @@ function openProfileModal() {
     // Status dot
     var statusDot = document.getElementById('profileStatusDot');
     if (statusDot) {
-statusDot.className = "status-dot online";
+        statusDot.className = 'status-dot ' + (currentUser.status || 'online');
     }
     
     // Nome e tag
@@ -4834,7 +4822,7 @@ console.log("✅ Firebase conectado");
                 <div class="profile-avatar-overlay" onclick="document.getElementById('profilePhotoInput2').click()">
                     <i class="fas fa-camera" style="font-size: 0.9rem; color: var(--black);"></i>
                 </div>
-                <div class="status-dot" id="profileStatusDot"></div>
+               <div class="status-dot" id="profileStatusDot"></div>
             </div>
             <h2 class="modal-title" id="profileName" style="margin-top: 1rem;"></h2>
             <p class="modal-subtitle" id="profileTag"></p>
@@ -4875,4 +4863,4 @@ console.log("✅ Firebase conectado");
 </div>
 
 </body>
-</html>
+    </html>
