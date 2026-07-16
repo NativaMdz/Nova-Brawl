@@ -2411,28 +2411,34 @@ async function handleLogout() {
                         </button>
                     </div>
                     <div class="dropdown">
-                        <div class="user-avatar" onclick="toggleDropdown()" title="${escapeHtml(currentUser.name)}">
-                            ${currentUser.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div class="dropdown-menu" id="userDropdown">
-                            <a onclick="showSection('teams'); closeDropdown();">
-                                <i class="fas fa-users"></i> Times ativos
-                            </a>
-                            <a onclick="showSection('tournaments'); closeDropdown();">
-                                <i class="fas fa-trophy"></i> Campeonatos
-                            </a>
-                            <a onclick="showSection('support'); closeDropdown();">
-                                <i class="fas fa-headset"></i> Suporte
-                            </a>
-                            <hr style="border-color: var(--white-10); margin: 0.5rem 0;">
-                            <a onclick="handleLogout(); closeDropdown();">
-                                <i class="fas fa-sign-out-alt"></i> Sair
-                            </a>
-                        </div>
+<div class="user-avatar" onclick="toggleDropdown()" title="${escapeHtml(currentUser.name)}" id="headerUserAvatar">
+    ${currentUser.photoURL ? 
+        `<img src="${currentUser.photoURL}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">` : 
+        currentUser.name.charAt(0).toUpperCase()}
+</div>
+<div class="dropdown-menu" id="userDropdown">
+    <a onclick="showSection('teams'); closeDropdown();">
+        <i class="fas fa-users"></i> Times ativos
+    </a>
+    <a onclick="showSection('tournaments'); closeDropdown();">
+        <i class="fas fa-trophy"></i> Campeonatos
+    </a>
+    <a onclick="showSection('support'); closeDropdown();">
+        <i class="fas fa-headset"></i> Suporte
+    </a>
+    <a onclick="document.getElementById('profilePhotoInput').click(); closeDropdown();">
+        <i class="fas fa-camera"></i> Alterar foto de perfil
+    </a>
+    <hr style="border-color: var(--white-10); margin: 0.5rem 0;">
+    <a onclick="handleLogout(); closeDropdown();">
+        <i class="fas fa-sign-out-alt"></i> Sair
+    </a>
+</div>
                     </div>
                     <button class="icon-btn menu-toggle" onclick="toggleSidebar()" style="display: none;">
                         <i class="fas fa-bars"></i>
                     </button>
+                    <input type="file" id="profilePhotoInput" accept="image/*" style="display: none;" onchange="handleProfilePhotoUpload(event)">
                 `;
                 if (heroLoginBtn) {
                     heroLoginBtn.innerHTML = '<i class="fas fa-trophy"></i> Ver Campeonatos';
@@ -3488,7 +3494,7 @@ players.push({
 
         ${currentUser?.isAdmin ? `
 
-            <hr style="margin:2rem 0;border:1px solid rgba(255,255,255,.08);">
+<hr style="margin:2rem 0;border:1px solid rgba(255,255,255,.08);">
 
 <h4 style="
     color:var(--gold);
@@ -3689,7 +3695,7 @@ async function deleteTeam(teamId) {
         // Exclui a equipe
         await deleteDoc(teamRef);
 
-        closeModal("viewTeamModal");
+closeModal("viewTeamModal");
 
 setTimeout(() => {
     showSection("teams");
@@ -3716,6 +3722,53 @@ showNotification(
         function saveTeams() {
             localStorage.setItem('novaBrawlTeams', JSON.stringify(teams));
         }
+
+// ===== PROFILE PHOTO UPLOAD =====
+async function handleProfilePhotoUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+        showNotification('Formato de imagem não suportado. Use JPG, PNG, GIF ou WebP.', 'error');
+        return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+        showNotification('A imagem deve ter no máximo 2MB.', 'error');
+        return;
+    }
+
+    try {
+        showNotification('Enviando foto de perfil...', 'info');
+
+        const storageRef = ref(window.storage, `profile_photos/${currentUser.id}`);
+        const snapshot = await uploadBytes(storageRef, file);
+        const downloadURL = await getDownloadURL(snapshot.ref);
+
+        await updateDoc(doc(db, "users", currentUser.id), {
+            photoURL: downloadURL
+        });
+
+        currentUser.photoURL = downloadURL;
+
+        const storedUser = JSON.parse(localStorage.getItem('novaBrawlCurrentUser') || sessionStorage.getItem('novaBrawlCurrentUser') || '{}');
+        if (storedUser && storedUser.id === currentUser.id) {
+            storedUser.photoURL = downloadURL;
+            if (localStorage.getItem('novaBrawlCurrentUser')) {
+                localStorage.setItem('novaBrawlCurrentUser', JSON.stringify(storedUser));
+            } else {
+                sessionStorage.setItem('novaBrawlCurrentUser', JSON.stringify(storedUser));
+            }
+        }
+
+        updateUI();
+        showNotification('Foto de perfil atualizada com sucesso! 🎉', 'success');
+
+    } catch (error) {
+        console.error("Erro no upload da foto:", error);
+        showNotification('Erro ao enviar foto. Tente novamente.', 'error');
+    }
+}
 
         // ===== LOGO UPLOAD =====
         function handleLogoUpload(event) {
@@ -4027,14 +4080,15 @@ onAuthStateChanged(auth, async (user) => {
                     const data = userDoc.data();
 
                     currentUser = {
-                        id: user.uid,
-                        name: data.name,
-                        nick: data.nick,
-                        tag: data.tag,
-                        email: data.email,
-                        teamId: data.teamId || null,
-                        isAdmin: data.admin === true
-                    };
+    id: user.uid,
+    name: data.name,
+    nick: data.nick,
+    tag: data.tag,
+    email: data.email,
+    teamId: data.teamId || null,
+    isAdmin: data.admin === true,
+    photoURL: data.photoURL || null
+};
 
                     sessionStorage.setItem(
                         'novaBrawlCurrentUser',
@@ -4136,7 +4190,7 @@ import {
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
-import { getStorage } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-storage.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-storage.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDjrybJ2Zb1VkQMaqTU7LHmgke35o45NhA",
@@ -4153,6 +4207,9 @@ const app = initializeApp(firebaseConfig);
 window.auth = getAuth(app);
 window.db = getFirestore(app);
 window.storage = getStorage(app);
+window.ref = ref;
+window.uploadBytes = uploadBytes;
+window.getDownloadURL = getDownloadURL;
 
 window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
 window.signInWithEmailAndPassword = signInWithEmailAndPassword;
@@ -4176,7 +4233,7 @@ console.log("✅ Firebase conectado");
 </script>
     <!-- 🎵 Música de fundo automática -->
     <audio id="bgMusic" loop autoplay style="display: none;">
-        <source src="https://v16-ies-music.tiktokcdn-us.com/baa907960ac8e6a9dc2549de068aafa7/6a616f1a/video/tos/alisg/tos-alisg-ve-2774/owr5ffpAMgBVRb71KxWeAvmVBF8ucCGBQfAr1W/?a=583965&bti=OTg7QGo5QHM6OjZALTAzYCMvcCMxNDNg&&bt=64&ft=4KUr5M9h8Zmo09HnJa4jVelyinWrKsd.&mime_type=audio_mp4&rc=Zzw3NGY6PDM2Zmc1ZmU6aEBpMzt2NHE5cmRpdjMzODlkNEAyNS0uLzUtXmMxNjBhYmAuYSMycF9gMmRrcV9gLS1kYS1zcw%3D%3D&vvpl=1&l=2026071601301017EFD376B44F6C58A375&btag=e00090000&shp=d05b14bd&shcp=- type="audio/mpeg">
+        <source src="https://v16-ies-music.tiktokcdn-us.com/f60e6d4ddb626fe65c67f87bb354d3c3/6a5c36ea/video/tos/alisg/tos-alisg-ve-2774/oIoBa8NhQXFseAeAgz5Mg59VZXKCXuTDDDr8Cf/?a=583965&bti=OUBzOTg7QGo6OjZAL3AjLTAzYCMxNDNg&&bt=64&ft=7g~atDDwN4vVQQdGuIOnsdBNvxZqYlbvh84~hWLrK&mime_type=audio_mp4&rc=OTdlNWlmZGY1ZGU2NmY4PEBpM2R4c3c5cnlmOTMzODlkNEA2NC4wLjU0NjIxXjUyYDQxYSNyaV9uMmQ0aS1hLS1kYS1zcw%3D%3D&vvpl=1&l=20260712022906B7A676EAD1C2F1750671&btag=e00090000&shp=d05b14bd&shcp=- type="audio/mpeg">
     </audio>
 
     <script>
