@@ -2207,23 +2207,23 @@ input[type="checkbox"] {
                 </div>
                 
               <!-- MODAL DE PERFIL PÚBLICO -->
+<!-- MODAL DE PERFIL PÚBLICO -->
 <div class="modal-overlay" id="publicProfileModal">
-    <div class="modal modal-lg">
+    <div class="modal modal-lg" style="text-align: center;">
         <div class="modal-header">
-            <div class="public-avatar" id="publicAvatar"></div>
-            <div class="status-dot" id="publicStatusDot" style="position: relative; margin: -15px auto 0; left: 30px;"></div>
-            <h2 class="modal-title" id="publicName" style="margin-top: 0.5rem;"></h2>
-            <p class="modal-subtitle" id="publicTag"></p>
-        </div>        
-        <div id="publicProfileBody"></div>
-        
+            <div id="publicAvatarContainer" style="width: 100px; height: 100px; border-radius: 50%; border: 3px solid var(--gold); margin: 0 auto; background: linear-gradient(135deg, var(--gold), var(--gold-dark)); display: flex; align-items: center; justify-content: center; font-size: 2.5rem; color: var(--black); font-weight: 700; overflow: hidden;"></div>
+            <div id="publicStatusIndicator" style="width: 14px; height: 14px; border-radius: 50%; margin: -10px auto 0; position: relative; left: 28px; border: 2px solid var(--gray-dark);"></div>
+            <h2 class="modal-title" id="publicPlayerName" style="margin-top: 0.8rem;">Carregando...</h2>
+            <p class="modal-subtitle" id="publicPlayerTag"></p>
+        </div>
+        <div id="publicPlayerInfo" style="text-align: left;"></div>
         <div style="text-align: center; margin-top: 1.5rem;">
             <button class="btn btn-outline" onclick="closeModal('publicProfileModal')">
                 <i class="fas fa-times"></i> Fechar
             </button>
         </div>
     </div>
-</div>                
+</div>
                 <div class="status-dot" id="profileStatusDot"></div>
             </div>
             <h2 class="modal-title" id="profileName" style="margin-top: 1rem;"></h2>
@@ -2711,139 +2711,97 @@ async function handleLogout() {
 async function viewPlayerProfile(playerTag) {
     if (!playerTag) return;
     
-    // Fecha outros modais primeiro
+    // Fecha qualquer modal aberto primeiro
     closeModal('viewTeamModal');
     closeModal('profileModal');
     
     try {
-        // Buscar usuário pela tag
         var q = query(collection(db, "users"), where("tag", "==", playerTag));
         var snap = await getDocs(q);
         
         if (snap.empty) {
-            showNotification('Jogador não encontrado no sistema!', 'warning');
+            showNotification('Jogador não encontrado!', 'warning');
             return;
         }
         
-        var userData = snap.docs[0].data();
+        var data = snap.docs[0].data();
         
-        // Preencher avatar
-        var publicAvatar = document.getElementById('publicAvatar');
-        publicAvatar.innerHTML = '';
-        publicAvatar.style.background = 'linear-gradient(135deg, var(--gold), var(--gold-dark))';
-        publicAvatar.style.display = 'flex';
-        publicAvatar.style.alignItems = 'center';
-        publicAvatar.style.justifyContent = 'center';
-        publicAvatar.style.fontSize = '2.5rem';
-        publicAvatar.style.color = 'var(--black)';
-        publicAvatar.style.fontWeight = '700';
+        // Avatar
+        var avatarContainer = document.getElementById('publicAvatarContainer');
+        avatarContainer.innerHTML = '';
         
-        if (userData.photoURL) {
-            publicAvatar.innerHTML = '<img src="' + userData.photoURL + '" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">';
-            publicAvatar.style.background = 'none';
-            publicAvatar.style.fontSize = '0';
+        if (data.photoURL) {
+            avatarContainer.innerHTML = '<img src="' + data.photoURL + '" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">';
+            avatarContainer.style.background = 'none';
         } else {
-            publicAvatar.textContent = (userData.name || '?').charAt(0).toUpperCase();
+            avatarContainer.textContent = (data.name || '?').charAt(0).toUpperCase();
+            avatarContainer.style.background = 'linear-gradient(135deg, var(--gold), var(--gold-dark))';
         }
         
-        // Status dot
-        var statusDot = document.getElementById('publicStatusDot');
-        statusDot.className = 'status-dot ' + (userData.status || 'online');
-        statusDot.style.position = 'relative';
-        statusDot.style.margin = '-15px auto 0';
-        statusDot.style.left = '30px';
+        // Status
+        var statusIndicator = document.getElementById('publicStatusIndicator');
+        statusIndicator.style.background = data.status === 'away' ? '#f59e0b' : (data.status === 'busy' ? '#ef4444' : '#10b981');
         
-        // Nome e tag
-        document.getElementById('publicName').textContent = userData.name || 'Desconhecido';
-        document.getElementById('publicTag').textContent = userData.tag || 'Sem tag';
+        // Nome e Tag
+        document.getElementById('publicPlayerName').textContent = data.name || 'Desconhecido';
+        document.getElementById('publicPlayerTag').textContent = data.tag || '';
         
-        // Buscar equipe do jogador
+        // Buscar equipe
         var userTeam = null;
-        if (teams && teams.length > 0) {
-            for (var i = 0; i < teams.length; i++) {
-                if (teams[i].players && teams[i].players.some(function(p) {
-                    return p.tag === playerTag;
-                })) {
-                    userTeam = teams[i];
-                    break;
+        for (var i = 0; i < teams.length; i++) {
+            var t = teams[i];
+            if (t.players) {
+                for (var j = 0; j < t.players.length; j++) {
+                    if (t.players[j].tag === playerTag) {
+                        userTeam = t;
+                        break;
+                    }
                 }
             }
+            if (userTeam) break;
         }
         
-        // Status texto
-        var statusText = {
-            'online': '🟢 Online',
-            'away': '🟡 Ausente',
-            'busy': '🔴 Ocupado'
-        };
+        var statusLabel = data.status === 'away' ? 'Ausente' : (data.status === 'busy' ? 'Ocupado' : 'Online');
+        var statusEmoji = data.status === 'away' ? '🟡' : (data.status === 'busy' ? '🔴' : '🟢');
         
-        var bodyHTML = '';
+        var infoHTML = '';
         
-        // Informações
-        bodyHTML += '<div class="profile-section-title">';
-        bodyHTML += '<i class="fas fa-info-circle"></i> Informações';
-        bodyHTML += '</div>';
+        // Seção Info
+        infoHTML += '<div style="color: var(--gold); font-weight: 700; margin: 1.5rem 0 0.5rem 0; font-size: 1.1rem;"><i class="fas fa-info-circle"></i> Informações</div>';
+        infoHTML += '<div style="background: rgba(255,255,255,0.05); padding: 0.8rem; border-radius: 0.5rem; margin-bottom: 0.3rem;"><strong>Nick:</strong> ' + escapeHtml(data.nick || 'Não definido') + '</div>';
+        infoHTML += '<div style="background: rgba(255,255,255,0.05); padding: 0.8rem; border-radius: 0.5rem; margin-bottom: 0.3rem;"><strong>Status:</strong> ' + statusEmoji + ' ' + statusLabel + '</div>';
         
-        bodyHTML += '<div class="info-item">';
-        bodyHTML += '<i class="fas fa-gamepad"></i>';
-        bodyHTML += '<span><strong>Nick:</strong> ' + escapeHtml(userData.nick || 'Não definido') + '</span>';
-        bodyHTML += '</div>';
-        
-        bodyHTML += '<div class="info-item">';
-        bodyHTML += '<i class="fas fa-circle"></i>';
-        bodyHTML += '<span><strong>Status:</strong> ' + (statusText[userData.status] || '🟢 Online') + '</span>';
-        bodyHTML += '</div>';
-        
-        if (userData.bio) {
-            bodyHTML += '<div class="info-item">';
-            bodyHTML += '<i class="fas fa-quote-right"></i>';
-            bodyHTML += '<span><em>"' + escapeHtml(userData.bio) + '"</em></span>';
-            bodyHTML += '</div>';
+        if (data.bio) {
+            infoHTML += '<div style="background: rgba(255,255,255,0.05); padding: 0.8rem; border-radius: 0.5rem; margin-bottom: 0.3rem;"><strong>Bio:</strong> <em>"' + escapeHtml(data.bio) + '"</em></div>';
         }
         
-        // Equipe
-        bodyHTML += '<div class="profile-section-title">';
-        bodyHTML += '<i class="fas fa-users"></i> Equipe';
-        bodyHTML += '</div>';
+        // Seção Equipe
+        infoHTML += '<div style="color: var(--gold); font-weight: 700; margin: 1.5rem 0 0.5rem 0; font-size: 1.1rem;"><i class="fas fa-users"></i> Equipe</div>';
         
         if (userTeam) {
-            bodyHTML += '<div class="info-item">';
-            bodyHTML += '<i class="fas fa-shield-halved"></i>';
-            bodyHTML += '<span><strong>' + escapeHtml(userTeam.name) + '</strong></span>';
-            bodyHTML += '<button class="btn btn-outline btn-sm" style="margin-left: auto;" onclick="closeModal(\'publicProfileModal\'); setTimeout(function(){ viewTeam(\'' + userTeam.id + '\'); }, 300);">';
-            bodyHTML += '<i class="fas fa-eye"></i> Ver Equipe';
-            bodyHTML += '</button>';
-            bodyHTML += '</div>';
+            infoHTML += '<div style="background: rgba(255,255,255,0.05); padding: 0.8rem; border-radius: 0.5rem; display: flex; align-items: center; justify-content: space-between;">';
+            infoHTML += '<span><strong>' + escapeHtml(userTeam.name) + '</strong></span>';
+            infoHTML += '<button class="btn btn-outline btn-sm" onclick="closeModal(\'publicProfileModal\'); setTimeout(function(){ viewTeam(\'' + userTeam.id + '\'); }, 300);"><i class="fas fa-eye"></i> Ver</button>';
+            infoHTML += '</div>';
         } else {
-            bodyHTML += '<div class="info-item" style="justify-content: center;">';
-            bodyHTML += '<i class="fas fa-users-slash"></i>';
-            bodyHTML += '<span>Nenhuma equipe</span>';
-            bodyHTML += '</div>';
+            infoHTML += '<div style="background: rgba(255,255,255,0.05); padding: 0.8rem; border-radius: 0.5rem; text-align: center; color: var(--white-50);">Nenhuma equipe</div>';
         }
         
-        // Estatísticas
-        bodyHTML += '<div class="profile-section-title">';
-        bodyHTML += '<i class="fas fa-chart-bar"></i> Estatísticas';
-        bodyHTML += '</div>';
+        // Seção Estatísticas
+        infoHTML += '<div style="color: var(--gold); font-weight: 700; margin: 1.5rem 0 0.5rem 0; font-size: 1.1rem;"><i class="fas fa-chart-bar"></i> Estatísticas</div>';
+        infoHTML += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.3rem;">';
+        infoHTML += '<div style="background: rgba(255,255,255,0.05); padding: 0.8rem; border-radius: 0.5rem; text-align: center;"><strong>' + (data.tournamentsPlayed || 0) + '</strong><br><small style="color: var(--white-50);">Campeonatos</small></div>';
+        infoHTML += '<div style="background: rgba(255,255,255,0.05); padding: 0.8rem; border-radius: 0.5rem; text-align: center;"><strong>' + (data.tournamentsWon || 0) + '</strong><br><small style="color: var(--white-50);">Vitórias</small></div>';
+        infoHTML += '</div>';
         
-        bodyHTML += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">';
-        bodyHTML += '<div class="info-item">';
-        bodyHTML += '<i class="fas fa-trophy"></i>';
-        bodyHTML += '<span><strong>' + (userData.tournamentsPlayed || 0) + '</strong> campeonatos</span>';
-        bodyHTML += '</div>';
-        bodyHTML += '<div class="info-item">';
-        bodyHTML += '<i class="fas fa-medal"></i>';
-        bodyHTML += '<span><strong>' + (userData.tournamentsWon || 0) + '</strong> vitórias</span>';
-        bodyHTML += '</div>';
-        bodyHTML += '</div>';
+        document.getElementById('publicPlayerInfo').innerHTML = infoHTML;
         
-        document.getElementById('publicProfileBody').innerHTML = bodyHTML;
-        
-        // Abre o modal
-        openModal('publicProfileModal');
+        // Abre o modal público
+        document.getElementById('publicProfileModal').classList.add('active');
+        document.body.style.overflow = 'hidden';
         
     } catch (err) {
-        console.error('Erro ao carregar perfil:', err);
+        console.error('Erro:', err);
         showNotification('Erro ao carregar perfil!', 'error');
     }
 }
@@ -3718,7 +3676,7 @@ async function saveProfileChanges() {
                 <div class="team-card-players">
 
                     ${team.players.map(p => `
-<div class="team-player-badge player-clickable" onclick="event.stopPropagation(); viewPlayerProfile('${p.tag.replace(/'/g, "\\'")}');">
+<div class="team-player-badge" style="cursor:pointer;" onclick="event.stopPropagation(); viewPlayerProfile('${p.tag}');">
     <strong>${p.isCaptain ? '👑 ' : ''}${escapeHtml(p.nick)}</strong>
     <span style="color: var(--white-50);">${escapeHtml(p.tag)}</span>
     <span style="color: var(--gold); font-size: .75rem;">
@@ -4074,7 +4032,7 @@ players.push({
         <div style="display:grid;gap:.8rem;">
 
             ${team.players.map(p => `
-<div style="display:flex;align-items:center;gap:1rem;padding:1rem;background:var(--white-10);border-radius:.75rem;cursor:pointer;" onclick="closeModal('viewTeamModal'); setTimeout(function(){ viewPlayerProfile('${p.tag.replace(/'/g, "\\'")}'); }, 300);">
+<div style="display:flex;align-items:center;gap:1rem;padding:1rem;background:var(--white-10);border-radius:.75rem;cursor:pointer;" onclick="closeModal('viewTeamModal'); setTimeout(function(){ viewPlayerProfile('${p.tag}'); }, 300);">
 
                     <div style="width:50px;height:50px;border-radius:50%;background:var(--gold-10);display:flex;align-items:center;justify-content:center;font-size:1.5rem;">
                         ${p.isCaptain ? "👑" : "🎮"}
