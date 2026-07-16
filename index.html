@@ -2820,13 +2820,17 @@ function openProfileModal() {
     
     // Preencher avatar
     var avatarLarge = document.getElementById('profileAvatarLarge');
-    if (!avatarLarge) return;
+    if (!avatarLarge) {
+        console.error('profileAvatarLarge não encontrado');
+        return;
+    }
     
     if (currentUser.photoURL) {
         avatarLarge.src = currentUser.photoURL;
         avatarLarge.style.display = 'block';
         avatarLarge.style.fontSize = '0';
         avatarLarge.innerHTML = '';
+        avatarLarge.style.background = 'none';
     } else {
         avatarLarge.src = '';
         avatarLarge.style.display = 'flex';
@@ -2852,23 +2856,28 @@ function openProfileModal() {
     
     // Buscar equipe do usuário
     var userTeam = null;
-    for (var i = 0; i < teams.length; i++) {
-        var t = teams[i];
-        if (t.players) {
-            for (var j = 0; j < t.players.length; j++) {
-                if (t.players[j].tag === currentUser.tag) {
-                    userTeam = t;
-                    break;
+    if (teams && teams.length > 0) {
+        for (var i = 0; i < teams.length; i++) {
+            var t = teams[i];
+            if (t.players) {
+                for (var j = 0; j < t.players.length; j++) {
+                    if (t.players[j].tag === currentUser.tag) {
+                        userTeam = t;
+                        break;
+                    }
                 }
             }
+            if (userTeam) break;
         }
-        if (userTeam) break;
     }
     
     var bioLength = (currentUser.bio || '').length;
     
     var bodyEl = document.getElementById('profileBody');
-    if (!bodyEl) return;
+    if (!bodyEl) {
+        console.error('profileBody não encontrado');
+        return;
+    }
     
     bodyEl.innerHTML = 
         '<div class="profile-section-title">' +
@@ -2944,7 +2953,6 @@ function openProfileModal() {
             });
         }
         
-        // Atualizar status dot ao mudar
         var statusSelect = document.getElementById('editStatus');
         if (statusSelect) {
             statusSelect.addEventListener('change', function() {
@@ -2952,7 +2960,7 @@ function openProfileModal() {
                 if (dot) dot.className = 'status-dot ' + this.value;
             });
         }
-    }, 100);
+    }, 200);
     
     openModal('profileModal');
 }
@@ -4866,4 +4874,4 @@ console.log("✅ Firebase conectado");
 </div>
 
 </body>
-                            </html>
+</html>
