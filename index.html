@@ -3724,7 +3724,7 @@ showNotification(
         }
 
 // ===== PROFILE PHOTO UPLOAD =====
-async function handleProfilePhotoUpload(event) {
+window.handleProfilePhotoUpload = async function(event) {
     const file = event.target.files[0];
     if (!file) return;
 
@@ -4166,6 +4166,7 @@ onAuthStateChanged(auth, async (user) => {
     "></div>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+
 import {
   getAuth,
   createUserWithEmailAndPassword,
