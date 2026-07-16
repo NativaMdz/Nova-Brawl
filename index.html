@@ -2961,10 +2961,10 @@ function openProfileModal() {
             });
         }
     }, 200);
-    console.log("ANTES:", document.getElementById("profileBody").innerHTML.length);
+    alert("ANTES: " + document.getElementById("profileBody").innerHTML.length);
     openModal('profileModal');
-    setTimeout(() => {
-    console.log("DEPOIS:", document.getElementById("profileBody").innerHTML.length);
+setTimeout(function () {
+    alert("DEPOIS: " + document.getElementById("profileBody").innerHTML.length);
 }, 100);
 }
 
