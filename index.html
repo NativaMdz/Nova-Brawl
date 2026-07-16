@@ -2961,11 +2961,8 @@ function openProfileModal() {
             });
         }
     }, 200);
-    alert("ANTES: " + document.getElementById("profileBody").innerHTML.length);
+    alert(document.getElementById("profileBody").innerHTML);
     openModal('profileModal');
-setTimeout(function () {
-    alert("DEPOIS: " + document.getElementById("profileBody").innerHTML.length);
-}, 100);
 }
 
 async function saveProfileChanges() {
