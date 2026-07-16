@@ -2423,13 +2423,13 @@ async function handleLogout() {
     <a onclick="showSection('tournaments'); closeDropdown();">
         <i class="fas fa-trophy"></i> Campeonatos
     </a>
+        <a onclick="document.getElementById('profilePhotoInput').click(); closeDropdown();">
+        <i class="fas fa-camera"></i> Alterar perfil
+    </a>
+    <hr style="border-color: var(--white-10); margin: 0.5rem 0;">
     <a onclick="showSection('support'); closeDropdown();">
         <i class="fas fa-headset"></i> Suporte
     </a>
-    <a onclick="document.getElementById('profilePhotoInput').click(); closeDropdown();">
-        <i class="fas fa-camera"></i> Alterar foto de perfil
-    </a>
-    <hr style="border-color: var(--white-10); margin: 0.5rem 0;">
     <a onclick="handleLogout(); closeDropdown();">
         <i class="fas fa-sign-out-alt"></i> Sair
     </a>
@@ -2450,9 +2450,6 @@ async function handleLogout() {
         showNotification('Imagem muito grande! Máx 2MB', 'error');
         return;
     }
-    
-    showNotification('Enviando foto...', 'info');
-    
     var reader = new FileReader();
     reader.onload = function(ev){
         var imgData = ev.target.result;
