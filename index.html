@@ -2412,8 +2412,8 @@ async function handleLogout() {
                     </div>
                     <div class="dropdown">
 <div class="user-avatar" onclick="toggleDropdown()" title="${escapeHtml(currentUser.name)}" id="headerUserAvatar">
-    ${currentUser.photoURL ? 
-        `<img src="${currentUser.photoURL}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">` : 
+    ${currentUser.photoURL && currentUser.photoURL.startsWith('data:') ? 
+        '<img src="' + currentUser.photoURL + '" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">' : 
         currentUser.name.charAt(0).toUpperCase()}
 </div>
 <div class="dropdown-menu" id="userDropdown">
@@ -2438,7 +2438,51 @@ async function handleLogout() {
                     <button class="icon-btn menu-toggle" onclick="toggleSidebar()" style="display: none;">
                         <i class="fas fa-bars"></i>
                     </button>
-                    <input type="file" id="profilePhotoInput" accept="image/*" style="display: none;" onchange="handleProfilePhotoUpload(event)">
+                    <input type="file" id="profilePhotoInput" accept="image/*" style="display: none;" onchange="(function(e){ 
+    var file = e.target.files[0];
+    if(!file) return;
+    
+    if(!['image/jpeg','image/png','image/gif','image/webp'].includes(file.type)){
+        showNotification('Formato não suportado!', 'error');
+        return;
+    }
+    if(file.size > 2097152){
+        showNotification('Imagem muito grande! Máx 2MB', 'error');
+        return;
+    }
+    
+    showNotification('Enviando foto...', 'info');
+    
+    var reader = new FileReader();
+    reader.onload = function(ev){
+        var imgData = ev.target.result;
+        
+        currentUser.photoURL = imgData;
+        
+        try {
+            updateDoc(doc(db, 'users', currentUser.id), { photoURL: imgData });
+        } catch(err) {
+            console.log('Erro Firebase:', err);
+        }
+        
+        var stored = localStorage.getItem('novaBrawlCurrentUser');
+        if(stored){
+            var u = JSON.parse(stored);
+            u.photoURL = imgData;
+            localStorage.setItem('novaBrawlCurrentUser', JSON.stringify(u));
+        }
+        stored = sessionStorage.getItem('novaBrawlCurrentUser');
+        if(stored){
+            var u = JSON.parse(stored);
+            u.photoURL = imgData;
+            sessionStorage.setItem('novaBrawlCurrentUser', JSON.stringify(u));
+        }
+        
+        updateUI();
+        showNotification('Foto atualizada! 🎉', 'success');
+    };
+    reader.readAsDataURL(file);
+})(event)">
                 `;
                 if (heroLoginBtn) {
                     heroLoginBtn.innerHTML = '<i class="fas fa-trophy"></i> Ver Campeonatos';
@@ -3722,53 +3766,6 @@ showNotification(
         function saveTeams() {
             localStorage.setItem('novaBrawlTeams', JSON.stringify(teams));
         }
-
-// ===== PROFILE PHOTO UPLOAD =====
-window.handleProfilePhotoUpload = async function(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-    if (!validTypes.includes(file.type)) {
-        showNotification('Formato de imagem não suportado. Use JPG, PNG, GIF ou WebP.', 'error');
-        return;
-    }
-    if (file.size > 2 * 1024 * 1024) {
-        showNotification('A imagem deve ter no máximo 2MB.', 'error');
-        return;
-    }
-
-    try {
-        showNotification('Enviando foto de perfil...', 'info');
-
-        const storageRef = ref(window.storage, `profile_photos/${currentUser.id}`);
-        const snapshot = await uploadBytes(storageRef, file);
-        const downloadURL = await getDownloadURL(snapshot.ref);
-
-        await updateDoc(doc(db, "users", currentUser.id), {
-            photoURL: downloadURL
-        });
-
-        currentUser.photoURL = downloadURL;
-
-        const storedUser = JSON.parse(localStorage.getItem('novaBrawlCurrentUser') || sessionStorage.getItem('novaBrawlCurrentUser') || '{}');
-        if (storedUser && storedUser.id === currentUser.id) {
-            storedUser.photoURL = downloadURL;
-            if (localStorage.getItem('novaBrawlCurrentUser')) {
-                localStorage.setItem('novaBrawlCurrentUser', JSON.stringify(storedUser));
-            } else {
-                sessionStorage.setItem('novaBrawlCurrentUser', JSON.stringify(storedUser));
-            }
-        }
-
-        updateUI();
-        showNotification('Foto de perfil atualizada com sucesso! 🎉', 'success');
-
-    } catch (error) {
-        console.error("Erro no upload da foto:", error);
-        showNotification('Erro ao enviar foto. Tente novamente.', 'error');
-    }
-}
 
         // ===== LOGO UPLOAD =====
         function handleLogoUpload(event) {
