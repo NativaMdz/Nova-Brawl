@@ -2164,32 +2164,7 @@ input[type="checkbox"] {
             </div>
             <h2 class="modal-title" id="profileName" style="margin-top: 1rem;"></h2>
             <p class="modal-subtitle" id="profileTag"></p>
-            <input type="file" id="profilePhotoInput2" accept="image/*" style="display: none;" onchange="(function(e){ 
-                var file = e.target.files[0];
-                if(!file) return;
-                if(!['image/jpeg','image/png','image/gif','image/webp'].includes(file.type)){
-                    showNotification('Formato não suportado!', 'error');
-                    return;
-                }
-                if(file.size > 2097152){
-                    showNotification('Imagem muito grande! Máx 2MB', 'error');
-                    return;
-                }
-                var reader = new FileReader();
-                reader.onload = function(ev){
-                    var imgData = ev.target.result;
-                    currentUser.photoURL = imgData;
-                    document.getElementById('profileAvatarLarge').src = imgData;
-                    document.getElementById('headerUserAvatar').innerHTML = '<img src=\"' + imgData + '\" style=\"width:100%; height:100%; border-radius:50%; object-fit:cover;\">';
-                    try { updateDoc(doc(db, 'users', currentUser.id), { photoURL: imgData }); } catch(err) {}
-                    var stored = localStorage.getItem('novaBrawlCurrentUser');
-                    if(stored){ var u = JSON.parse(stored); u.photoURL = imgData; localStorage.setItem('novaBrawlCurrentUser', JSON.stringify(u)); }
-                    stored = sessionStorage.getItem('novaBrawlCurrentUser');
-                    if(stored){ var u = JSON.parse(stored); u.photoURL = imgData; sessionStorage.setItem('novaBrawlCurrentUser', JSON.stringify(u)); }
-                    showNotification('Foto atualizada! 🎉', 'success');
-                };
-                reader.readAsDataURL(file);
-            })(event)">
+            <input type="file" id="profilePhotoInput2" accept="image/*" style="display: none;" onchange="handleProfilePhotoUpload2(event)">
         </div>
         
         <div id="profileBody">
@@ -2836,7 +2811,68 @@ async function saveProfileChanges() {
         showNotification('Erro ao salvar. Tente novamente.', 'error');
     }
 }
-        function toggleDropdown() {
+  
+  function handleProfilePhotoUpload2(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    
+    if (!['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(file.type)) {
+        showNotification('Formato não suportado!', 'error');
+        return;
+    }
+    if (file.size > 2097152) {
+        showNotification('Imagem muito grande! Máx 2MB', 'error');
+        return;
+    }
+    
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+        var imgData = ev.target.result;
+        currentUser.photoURL = imgData;
+        
+        // Atualiza o avatar no modal
+        var avatarLarge = document.getElementById('profileAvatarLarge');
+        if (avatarLarge) {
+            avatarLarge.src = imgData;
+            avatarLarge.style.display = 'block';
+            avatarLarge.innerHTML = '';
+        }
+        
+        // Atualiza o avatar no header
+        var headerAvatar = document.getElementById('headerUserAvatar');
+        if (headerAvatar) {
+            headerAvatar.innerHTML = '<img src="' + imgData + '" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">';
+        }
+        
+        // Salva no Firestore
+        try {
+            updateDoc(doc(db, 'users', currentUser.id), { photoURL: imgData });
+        } catch(err) {
+            console.log('Erro Firebase:', err);
+        }
+        
+        // Salva no localStorage
+        var stored = localStorage.getItem('novaBrawlCurrentUser');
+        if (stored) {
+            var u = JSON.parse(stored);
+            u.photoURL = imgData;
+            localStorage.setItem('novaBrawlCurrentUser', JSON.stringify(u));
+        }
+        
+        // Salva no sessionStorage
+        stored = sessionStorage.getItem('novaBrawlCurrentUser');
+        if (stored) {
+            var u = JSON.parse(stored);
+            u.photoURL = imgData;
+            sessionStorage.setItem('novaBrawlCurrentUser', JSON.stringify(u));
+        }
+        
+        showNotification('Foto atualizada! 🎉', 'success');
+    };
+    reader.readAsDataURL(file);
+}
+  
+              function toggleDropdown() {
             const dropdown = document.getElementById('userDropdown');
             if (dropdown) dropdown.classList.toggle('active');
         }
