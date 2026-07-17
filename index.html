@@ -4876,6 +4876,14 @@ window.limit = limit;
 window.writeBatch = writeBatch;
 
 console.log("✅ Firebase conectado");
+    window.onerror = function(msg, url, line, col, error) {
+    alert(
+        "ERRO!\n\n" +
+        msg +
+        "\nLinha: " + line +
+        "\nColuna: " + col
+    );
+};
 </script>
     <!-- 🎵 Música de fundo automática -->
     <audio id="bgMusic" loop autoplay style="display: none;">
