@@ -3183,59 +3183,50 @@ async function saveProfileChanges() {
 
         // ===== SUPPORT SYSTEM =====
 async function openNewTicket() {
-    if (!currentUser) {
-        showNotification('Faça login para abrir um ticket de suporte!', 'warning');
-        openModal('loginModal');
-        return;
-    }
-
-    const category = prompt(
-        'Categoria do problema:\n' +
-        '1 - Problema Técnico\n' +
-        '2 - Dúvida sobre Campeonatos\n' +
-        '3 - Denúncia\n' +
-        '4 - Sugestão\n' +
-        '5 - Outro\n\n' +
-        'Digite o número:'
-    );
-
-    const categories = [
-        '',
-        'Problema Técnico',
-        'Dúvida sobre Campeonatos',
-        'Denúncia',
-        'Sugestão',
-        'Outro'
-    ];
-
-    const categoryName = categories[parseInt(category)] || 'Outro';
-
-    const subject = prompt('Assunto do ticket:');
-    if (!subject) return;
-
-    const description = prompt('Descreva seu problema em detalhes:');
-    if (!description) return;
-
-    const ticketId = 'TKT-' + Date.now().toString().slice(-6);
 
     try {
+
+        if (!currentUser) {
+            alert("Usuário não logado");
+            return;
+        }
+
+        alert("Passou 1");
+
+        const category = prompt("Categoria:");
+        if (category === null) return;
+
+        alert("Passou 2");
+
+        const subject = prompt("Assunto:");
+        if (!subject) return;
+
+        alert("Passou 3");
+
+        const description = prompt("Descrição:");
+        if (!description) return;
+
+        alert("Passou 4");
+
+        const ticketId = "TKT-" + Date.now().toString().slice(-6);
+
+        alert("Passou 5");
 
         await setDoc(doc(db, "supportTickets", ticketId), {
 
             id: ticketId,
             userId: currentUser.id,
             userName: currentUser.name,
-
-            category: categoryName,
+            category: category,
             subject: subject,
             description: description,
-
             status: "open",
-
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
 
         });
+
+        alert("Documento criado");
 
         await addDoc(
             collection(db, "supportTickets", ticketId, "messages"),
@@ -3246,21 +3237,19 @@ async function openNewTicket() {
             }
         );
 
-        showNotification(
-            "Ticket criado com sucesso!",
-            "success"
-        );
+        alert("Mensagem criada");
 
     } catch (e) {
 
-        console.error(e);
-
-        showNotification(
-            "Erro ao criar ticket.",
-            "error"
+        alert(
+            "ERRO:\n\n" +
+            e.name +
+            "\n\n" +
+            e.message
         );
 
     }
+
 }
             
             const category = prompt('Categoria do problema:\n1 - Problema Técnico\n2 - Dúvida sobre Campeonatos\n3 - Denúncia\n4 - Sugestão\n5 - Outro\n\nDigite o número:');
