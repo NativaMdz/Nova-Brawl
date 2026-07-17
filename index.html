@@ -4503,7 +4503,9 @@ function openModal(modalId) {
             document.getElementById('sidebarOverlay').classList.toggle('active');
         }
 
+alert("ANTES");
 function showSection(sectionName) {
+alert("DEPOIS");
     const sections = ['home', 'tournaments', 'teams', 'rankings', 'news', 'chat', 'support'];
     
     sections.forEach(s => {
@@ -4876,14 +4878,6 @@ window.limit = limit;
 window.writeBatch = writeBatch;
 
 console.log("✅ Firebase conectado");
-    window.onerror = function(msg, url, line, col, error) {
-    alert(
-        "ERRO!\n\n" +
-        msg +
-        "\nLinha: " + line +
-        "\nColuna: " + col
-    );
-};
 </script>
     <!-- 🎵 Música de fundo automática -->
     <audio id="bgMusic" loop autoplay style="display: none;">
