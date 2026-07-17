@@ -3293,22 +3293,46 @@ await loadTickets();
             openSupportChat(ticketId);
         }
 
-        function closeTicket(ticketId) {
-            if (!confirm('Tem certeza que deseja fechar este ticket?')) return;
-            
-            const ticket = supportTickets.find(t => t.id === ticketId);
-            if (!ticket) return;
-            
-            ticket.status = 'closed';
-            ticket.messages.push({
-                from: 'support',
-                text: 'Ticket fechado. Obrigado pelo contato!',
-                time: new Date().toISOString()
-            });
-            saveTickets();
-            showNotification('Ticket fechado.', 'info');
-            renderSupportContent();
-        }
+        async function closeTicket(ticketId) {
+
+    if (!confirm('Tem certeza que deseja fechar este ticket?')) return;
+
+    const ticket = supportTickets.find(t => t.id === ticketId);
+
+    if (!ticket) return;
+
+    try {
+
+        await updateDoc(
+            doc(db, "supportTickets", ticket.firestoreId),
+            {
+                status: "closed",
+                messages: [
+                    ...ticket.messages,
+                    {
+                        from: "support",
+                        text: "Ticket fechado. Obrigado pelo contato!",
+                        time: new Date().toISOString()
+                    }
+                ]
+            }
+        );
+
+        await loadTickets();
+
+        showNotification("Ticket fechado.", "success");
+
+        await renderSupportContent();
+
+    } catch (e) {
+
+        console.error(e);
+
+        showNotification("Erro ao fechar o ticket.", "error");
+
+    }
+
+}
 
         // ===== CONTENT RENDERING =====
         function renderAllContent() {
