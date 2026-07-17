@@ -3225,7 +3225,7 @@ async function saveProfileChanges() {
             await saveTicket(ticket);
 await loadTickets();
             showNotification(`Ticket #${ticket.id} criado com sucesso!`, 'success');
-            renderSupportContent();
+            await renderSupportContent();
         }
 
         function saveTickets() {
@@ -3550,7 +3550,7 @@ await loadTickets();
             }).join('');
         }
 
-        function renderSupportContent() {
+       async function renderSupportContent() {
             const container = document.getElementById('supportContent');
             if (!container) return;
             
@@ -3565,7 +3565,9 @@ await loadTickets();
                 return;
             }
             
-            const myTickets = supportTickets.filter(t => t.userId === currentUser.id);
+await loadTickets();
+
+const myTickets = supportTickets.filter(t => t.userId === currentUser.id);
             
             container.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;">
