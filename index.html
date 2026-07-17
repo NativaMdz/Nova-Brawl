@@ -4811,6 +4811,9 @@ async function saveTicket(ticket) {
     await addDoc(collection(db, "supportTickets"), ticket);
 }
 
+window.saveTicket = saveTicket;
+window.loadTickets = loadTickets;
+
 console.log("✅ Firebase conectado");
 </script>
     <!-- 🎵 Música de fundo automática -->
