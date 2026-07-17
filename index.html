@@ -3293,45 +3293,19 @@ await loadTickets();
             openSupportChat(ticketId);
         }
 
-        async function closeTicket(ticketId) {
-
-    if (!confirm('Tem certeza que deseja fechar este ticket?')) return;
+async function closeTicket(ticketId) {
+    if (!confirm('Tem certeza que deseja encerrar este ticket?')) return;
 
     const ticket = supportTickets.find(t => t.id === ticketId);
-
     if (!ticket) return;
 
-    try {
+    await deleteDoc(doc(db, "supportTickets", ticket.firestoreId));
 
-        await updateDoc(
-            doc(db, "supportTickets", ticket.firestoreId),
-            {
-                status: "closed",
-                messages: [
-                    ...ticket.messages,
-                    {
-                        from: "support",
-                        text: "Ticket fechado. Obrigado pelo contato!",
-                        time: new Date().toISOString()
-                    }
-                ]
-            }
-        );
+    supportTickets = supportTickets.filter(t => t.id !== ticketId);
 
-        await loadTickets();
+    showNotification("Ticket encerrado com sucesso!", "success");
 
-        showNotification("Ticket fechado.", "success");
-
-        await renderSupportContent();
-
-    } catch (e) {
-
-        console.error(e);
-
-        showNotification("Erro ao fechar o ticket.", "error");
-
-    }
-
+    renderSupportContent();
 }
 
         // ===== CONTENT RENDERING =====
