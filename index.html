@@ -3182,75 +3182,12 @@ async function saveProfileChanges() {
         }
 
         // ===== SUPPORT SYSTEM =====
-async function openNewTicket() {
-
-    try {
-
-        if (!currentUser) {
-            alert("Usuário não logado");
-            return;
-        }
-
-        alert("Passou 1");
-
-        const category = prompt("Categoria:");
-        if (category === null) return;
-
-        alert("Passou 2");
-
-        const subject = prompt("Assunto:");
-        if (!subject) return;
-
-        alert("Passou 3");
-
-        const description = prompt("Descrição:");
-        if (!description) return;
-
-        alert("Passou 4");
-
-        const ticketId = "TKT-" + Date.now().toString().slice(-6);
-
-        alert("Passou 5");
-
-        await setDoc(doc(db, "supportTickets", ticketId), {
-
-            id: ticketId,
-            userId: currentUser.id,
-            userName: currentUser.name,
-            category: category,
-            subject: subject,
-            description: description,
-            status: "open",
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp()
-
-        });
-
-        alert("Documento criado");
-
-        await addDoc(
-            collection(db, "supportTickets", ticketId, "messages"),
-            {
-                from: "user",
-                text: description,
-                time: serverTimestamp()
+       async function openNewTicket() {
+            if (!currentUser) {
+                showNotification('Faça login para abrir um ticket de suporte!', 'warning');
+                openModal('loginModal');
+                return;
             }
-        );
-
-        alert("Mensagem criada");
-
-    } catch (e) {
-
-        alert(
-            "ERRO:\n\n" +
-            e.name +
-            "\n\n" +
-            e.message
-        );
-
-    }
-
-}
             
             const category = prompt('Categoria do problema:\n1 - Problema Técnico\n2 - Dúvida sobre Campeonatos\n3 - Denúncia\n4 - Sugestão\n5 - Outro\n\nDigite o número:');
             const categories = ['', 'Problema Técnico', 'Dúvida sobre Campeonatos', 'Denúncia', 'Sugestão', 'Outro'];
@@ -3285,8 +3222,8 @@ async function openNewTicket() {
                 ]
             };
             
-            supportTickets.unshift(ticket);
-            saveTickets();
+            await saveTicket(ticket);
+await loadTickets();
             showNotification(`Ticket #${ticket.id} criado com sucesso!`, 'success');
             renderSupportContent();
         }
@@ -3295,75 +3232,66 @@ async function openNewTicket() {
             localStorage.setItem('novaBrawlTickets', JSON.stringify(supportTickets));
         }
 
-function openSupportChat(ticketId) {
-    const ticket = supportTickets.find(t => t.id === ticketId);
-    if (!ticket) return;
-
-    const isAdmin = currentUser.role === "admin";
-
-    document.getElementById('supportTicketId').textContent = ticket.id;
-
-    document.getElementById('supportChatTitle').textContent =
-        isAdmin
-            ? `Ticket #${ticket.id} • ${ticket.userName}`
-            : `Ticket #${ticket.id} - ${ticket.subject}`;
-
-    const messagesContainer = document.getElementById('supportChatMessages');
-
-    messagesContainer.innerHTML = ticket.messages.map(m => {
-
-        let sender = "";
-
-        if (m.from === "user") {
-            sender = isAdmin ? ticket.userName : "Você";
-        } else {
-            sender = "Suporte Nova Brawl";
+        function openSupportChat(ticketId) {
+            const ticket = supportTickets.find(t => t.id === ticketId);
+            if (!ticket) return;
+            
+            document.getElementById('supportTicketId').textContent = ticket.id;
+            document.getElementById('supportChatTitle').textContent = `Ticket #${ticket.id} - ${ticket.subject}`;
+            
+            const messagesContainer = document.getElementById('supportChatMessages');
+            messagesContainer.innerHTML = ticket.messages.map(m => `
+                <div class="chat-message ${m.from}">
+                    <strong>${m.from === 'user' ? 'Você' : 'Suporte Nova Brawl'}</strong>
+                    <p>${escapeHtml(m.text)}</p>
+                    <div class="msg-time">${new Date(m.time).toLocaleString('pt-BR')}</div>
+                </div>
+            `).join('');
+            
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            
+            // Store current ticket ID for sending messages
+            document.getElementById('supportChatInput').dataset.ticketId = ticketId;
+            
+            openModal('supportChatModal');
         }
 
-        return `
-            <div class="chat-message ${m.from}">
-                <strong>${sender}</strong>
-                <p>${escapeHtml(m.text)}</p>
-                <div class="msg-time">
-                    ${new Date(m.time).toLocaleString('pt-BR')}
-                </div>
-            </div>
-        `;
-    }).join("");
-
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-
-    document.getElementById("supportChatInput").dataset.ticketId = ticketId;
-
-    openModal("supportChatModal");
-}
-
-function sendSupportMessage() {
-    const input = document.getElementById('supportChatInput');
-    const ticketId = input.dataset.ticketId;
-    const text = input.value.trim();
-
-    if (!text || !ticketId) return;
-
-    const ticket = supportTickets.find(t => t.id === ticketId);
-    if (!ticket) return;
-
-    const isAdmin = currentUser.role === "admin";
-
-    ticket.messages.push({
-        from: isAdmin ? "support" : "user",
-        text: text,
-        time: new Date().toISOString()
-    });
-
-    saveTickets();
-
-    input.value = "";
-
-    openSupportChat(ticketId);
-
-    renderSupportContent();
-}
+        function sendSupportMessage() {
+            const input = document.getElementById('supportChatInput');
+            const ticketId = input.dataset.ticketId;
+            const text = input.value.trim();
+            
+            if (!text || !ticketId) return;
+            
+            const ticket = supportTickets.find(t => t.id === ticketId);
+            if (!ticket) return;
+            
+            ticket.messages.push({
+                from: 'user',
+                text,
+                time: new Date().toISOString()
+            });
+            
+            saveTickets();
+            
+            // Auto-reply simulation
+            setTimeout(() => {
+                ticket.messages.push({
+                    from: 'support',
+                    text: 'Obrigado pela informação adicional! Nossa equipe continua analisando seu caso.',
+                    time: new Date().toISOString()
+                });
+                saveTickets();
+                
+                // Refresh chat if still open
+                if (document.getElementById('supportChatModal').classList.contains('active')) {
+                    openSupportChat(ticketId);
+                }
+            }, 2000);
+            
+            input.value = '';
+            openSupportChat(ticketId);
+        }
 
         function closeTicket(ticketId) {
             if (!confirm('Tem certeza que deseja fechar este ticket?')) return;
@@ -3637,11 +3565,7 @@ function sendSupportMessage() {
                 return;
             }
             
-const isAdmin = currentUser.role === "admin";
-
-const tickets = isAdmin
-    ? supportTickets
-    : supportTickets.filter(t => t.userId === currentUser.id);
+            const myTickets = supportTickets.filter(t => t.userId === currentUser.id);
             
             container.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;">
@@ -3652,16 +3576,16 @@ const tickets = isAdmin
                 </div>
                 
                 <h3 style="color: var(--gold); margin-bottom: 1rem;">
-                    <i class="fas fa-ticket-alt"></i> ${isAdmin ? 'Todos os Tickets' : 'Meus Tickets'} (${tickets.length})
+                    <i class="fas fa-ticket-alt"></i> Meus Tickets (${myTickets.length})
                 </h3>
                 
-${tickets.length === 0 ? `
+                ${myTickets.length === 0 ? `
                     <div class="empty-state">
                         <i class="fas fa-inbox"></i>
                         <h3>Nenhum ticket aberto</h3>
                         <p>Você ainda não abriu nenhum ticket de suporte.</p>
                     </div>
-                ` : tickets.map(t => {
+                ` : myTickets.map(t => {
                     const statusLabels = {
                         open: { text: 'Aberto', class: 'status-open' },
                         'in-progress': { text: 'Em andamento', class: 'status-progress' },
@@ -3675,11 +3599,7 @@ ${tickets.length === 0 ? `
                                 <div>
                                     <span class="ticket-status ${status.class}">${status.text}</span>
                                     <strong style="margin-left: 0.5rem;">#${t.id}</strong>
-                                    <h4 style="margin-top: 0.5rem;">${isAdmin ? `
-<p style="color: var(--gold); font-weight:600;">
-    👤 ${escapeHtml(t.userName || "Usuário")}
-</p>
-` : ''}</h4>
+                                    <h4 style="margin-top: 0.5rem;">${escapeHtml(t.subject)}</h4>
                                     <p style="color: var(--white-50); font-size: 0.85rem;">Categoria: ${t.category}</p>
                                     <p style="color: var(--white-30); font-size: 0.8rem;">Criado em ${new Date(t.createdAt).toLocaleString('pt-BR')}</p>
                                     <p style="color: var(--white-30); font-size: 0.8rem;">${t.messages.length} mensagens</p>
@@ -4503,9 +4423,7 @@ function openModal(modalId) {
             document.getElementById('sidebarOverlay').classList.toggle('active');
         }
 
-alert("ANTES");
 function showSection(sectionName) {
-alert("DEPOIS");
     const sections = ['home', 'tournaments', 'teams', 'rankings', 'news', 'chat', 'support'];
     
     sections.forEach(s => {
@@ -4827,10 +4745,9 @@ import {
   where,
   updateDoc,
   onSnapshot,
-  serverTimestamp,
+  serverTimestamp, 
   orderBy,
-  limit,
-  writeBatch
+  limit
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-storage.js";
@@ -4858,7 +4775,6 @@ window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
 window.signInWithEmailAndPassword = signInWithEmailAndPassword;
 window.signOut = signOut;
 window.onAuthStateChanged = onAuthStateChanged;
-
 window.doc = doc;
 window.setDoc = setDoc;
 window.getDoc = getDoc;
@@ -4873,9 +4789,27 @@ window.updateDoc = updateDoc;
 window.onSnapshot = onSnapshot;
 window.serverTimestamp = serverTimestamp;
 
-window.orderBy = orderBy;
-window.limit = limit;
-window.writeBatch = writeBatch;
+async function loadTickets() {
+    const q = query(
+        collection(db, "supportTickets"),
+        orderBy("createdAt", "desc")
+    );
+
+    const snapshot = await getDocs(q);
+
+    supportTickets = [];
+
+    snapshot.forEach(doc => {
+        supportTickets.push({
+            firestoreId: doc.id,
+            ...doc.data()
+        });
+    });
+}
+
+async function saveTicket(ticket) {
+    await addDoc(collection(db, "supportTickets"), ticket);
+}
 
 console.log("✅ Firebase conectado");
 </script>
