@@ -3256,42 +3256,37 @@ await loadTickets();
             openModal('supportChatModal');
         }
 
-        function sendSupportMessage() {
-            const input = document.getElementById('supportChatInput');
-            const ticketId = input.dataset.ticketId;
-            const text = input.value.trim();
-            
-            if (!text || !ticketId) return;
-            
-            const ticket = supportTickets.find(t => t.id === ticketId);
-            if (!ticket) return;
-            
-            ticket.messages.push({
-                from: 'user',
-                text,
-                time: new Date().toISOString()
-            });
-            
-            saveTickets();
-            
-            // Auto-reply simulation
-            setTimeout(() => {
-                ticket.messages.push({
-                    from: 'support',
-                    text: 'Obrigado pela informação adicional! Nossa equipe continua analisando seu caso.',
-                    time: new Date().toISOString()
-                });
-                saveTickets();
-                
-                // Refresh chat if still open
-                if (document.getElementById('supportChatModal').classList.contains('active')) {
-                    openSupportChat(ticketId);
-                }
-            }, 2000);
-            
-            input.value = '';
-            openSupportChat(ticketId);
+async function sendSupportMessage() {
+
+    const input = document.getElementById('supportChatInput');
+    const ticketId = input.dataset.ticketId;
+    const text = input.value.trim();
+
+    if (!text || !ticketId) return;
+
+    const ticket = supportTickets.find(t => t.id === ticketId);
+
+    if (!ticket) return;
+
+    ticket.messages.push({
+        from: "user",
+        text: text,
+        time: new Date().toISOString()
+    });
+
+    await updateDoc(
+        doc(db, "supportTickets", ticket.firestoreId),
+        {
+            messages: ticket.messages
         }
+    );
+
+    input.value = "";
+
+    await loadTickets();
+
+    openSupportChat(ticketId);
+}
 
 async function closeTicket(ticketId) {
     if (!confirm('Tem certeza que deseja fechar este ticket?')) return;
