@@ -3588,7 +3588,9 @@ async function removeExpiredTickets() {
             
 await loadTickets();
 
-const myTickets = supportTickets.filter(t => t.userId === currentUser.id);
+const myTickets = currentUser.isAdmin
+    ? supportTickets
+    : supportTickets.filter(t => t.userId === currentUser.id);
             
             container.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;">
