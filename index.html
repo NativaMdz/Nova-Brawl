@@ -3294,18 +3294,46 @@ await loadTickets();
         }
 
 async function closeTicket(ticketId) {
-    if (!confirm('Tem certeza que deseja encerrar este ticket?')) return;
+    if (!confirm('Tem certeza que deseja fechar este ticket?')) return;
 
     const ticket = supportTickets.find(t => t.id === ticketId);
     if (!ticket) return;
 
-    await deleteDoc(doc(db, "supportTickets", ticket.firestoreId));
+    ticket.status = "closed";
+    ticket.closedAt = Date.now();
 
-    supportTickets = supportTickets.filter(t => t.id !== ticketId);
+    await updateDoc(doc(db, "supportTickets", ticket.firestoreId), {
+        status: "closed",
+        closedAt: Date.now()
+    });
 
-    showNotification("Ticket encerrado com sucesso!", "success");
+    showNotification("Ticket encerrado!", "success");
 
+    await loadTickets();
     renderSupportContent();
+}
+
+async function removeExpiredTickets() {
+
+    const agora = Date.now();
+
+    for (const ticket of supportTickets) {
+
+        if (
+            ticket.status === "closed" &&
+            ticket.closedAt &&
+            agora - ticket.closedAt > 30000 // 30 segundos
+        ) {
+
+            await deleteDoc(doc(db, "supportTickets", ticket.firestoreId));
+        }
+    }
+
+    await loadTickets();
+
+    if (typeof renderSupportContent === "function") {
+        renderSupportContent();
+    }
 }
 
         // ===== CONTENT RENDERING =====
@@ -4813,6 +4841,8 @@ async function saveTicket(ticket) {
 
 window.saveTicket = saveTicket;
 window.loadTickets = loadTickets;
+
+setInterval(removeExpiredTickets, 5000);
 
 console.log("✅ Firebase conectado");
 </script>
