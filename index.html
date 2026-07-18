@@ -4834,10 +4834,48 @@ async function saveTicket(ticket) {
     await addDoc(collection(db, "supportTickets"), ticket);
 }
 
+function listenTickets() {
+
+    const q = query(
+        collection(db, "supportTickets"),
+        orderBy("createdAt", "desc")
+    );
+
+    onSnapshot(q, (snapshot) => {
+
+        supportTickets = [];
+
+        snapshot.forEach((docSnap) => {
+            supportTickets.push({
+                firestoreId: docSnap.id,
+                ...docSnap.data()
+            });
+        });
+
+        // Atualiza a tela de suporte, se estiver aberta
+        const supportSection = document.getElementById("supportSection");
+
+        if (supportSection && supportSection.style.display !== "none") {
+            renderSupportContent();
+        }
+
+        // Atualiza o chat aberto automaticamente
+        const input = document.getElementById("supportChatInput");
+
+        if (input && input.dataset.ticketId) {
+            openSupportChat(input.dataset.ticketId);
+        }
+
+    });
+
+}
+
 window.saveTicket = saveTicket;
 window.loadTickets = loadTickets;
 
 setInterval(removeExpiredTickets, 5000);
+
+listenTickets();
 
 console.log("✅ Firebase conectado");
 </script>
