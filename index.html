@@ -3232,29 +3232,47 @@ await loadTickets();
             localStorage.setItem('novaBrawlTickets', JSON.stringify(supportTickets));
         }
 
-        function openSupportChat(ticketId) {
-            const ticket = supportTickets.find(t => t.id === ticketId);
-            if (!ticket) return;
-            
-            document.getElementById('supportTicketId').textContent = ticket.id;
-            document.getElementById('supportChatTitle').textContent = `Ticket #${ticket.id} - ${ticket.subject}`;
-            
-            const messagesContainer = document.getElementById('supportChatMessages');
-            messagesContainer.innerHTML = ticket.messages.map(m => `
-                <div class="chat-message ${m.from}">
-                    <strong>${m.from === 'user' ? 'Você' : 'Suporte Nova Brawl'}</strong>
-                    <p>${escapeHtml(m.text)}</p>
-                    <div class="msg-time">${new Date(m.time).toLocaleString('pt-BR')}</div>
-                </div>
-            `).join('');
-            
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            
-            // Store current ticket ID for sending messages
-            document.getElementById('supportChatInput').dataset.ticketId = ticketId;
-            
-            openModal('supportChatModal');
-        }
+
+function openSupportChat(ticketId) {
+
+    const ticket = supportTickets.find(t => t.id === ticketId);
+    if (!ticket) return;
+
+    document.getElementById('supportTicketId').textContent = ticket.id;
+    document.getElementById('supportChatTitle').textContent =
+        `Ticket #${ticket.id} - ${ticket.subject}`;
+
+    const isAdmin = currentUser.isAdmin;
+
+    const messagesContainer = document.getElementById('supportChatMessages');
+
+    messagesContainer.innerHTML = ticket.messages.map(m => {
+
+        const senderName = isAdmin
+            ? (m.from === "admin"
+                ? "Você"
+                : (ticket.name || ticket.userName || ticket.user || "Usuário"))
+            : (m.from === "user"
+                ? "Você"
+                : "Suporte Nova Brawl");
+
+        return `
+            <div class="chat-message ${m.from}">
+                <strong>${senderName}</strong>
+                <p>${escapeHtml(m.text)}</p>
+                <div class="msg-time">${new Date(m.time).toLocaleString('pt-BR')}</div>
+            </div>
+        `;
+
+    }).join('');
+
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+    document.getElementById('supportChatInput').dataset.ticketId = ticketId;
+
+    openModal('supportChatModal');
+}
+
 
 async function sendSupportMessage() {
 
@@ -3265,11 +3283,10 @@ async function sendSupportMessage() {
     if (!text || !ticketId) return;
 
     const ticket = supportTickets.find(t => t.id === ticketId);
-
     if (!ticket) return;
 
     ticket.messages.push({
-        from: "user",
+        from: currentUser.isAdmin ? "admin" : "user",
         text: text,
         time: new Date().toISOString()
     });
@@ -3284,9 +3301,9 @@ async function sendSupportMessage() {
     input.value = "";
 
     await loadTickets();
-
     openSupportChat(ticketId);
 }
+
 
 async function closeTicket(ticketId) {
     if (!confirm('Tem certeza que deseja fechar este ticket?')) return;
@@ -4883,7 +4900,7 @@ console.log("✅ Firebase conectado");
 </script>
     <!-- 🎵 Música de fundo automática -->
     <audio id="bgMusic" loop autoplay style="display: none;">
-        <source src="musicasite.mp3" type="audio/mpeg">
+        <source src="https://v16-ies-music.tiktokcdn-us.com/5d43ab282d04d880c5a6def8d3d52034/6a626bfc/video/tos/useast5/tos-useast5-ve-27dcd7c799-tx/osfxWHj1P4CGF37BC1FEgWD6ofETiAtMIZfvS9/?a=583965&bti=OUBzOTg7QGo6OjZAL3AjLTAzYCMxNDNg&&bt=62&ft=4KUr5MX_8Zmo00CLJa4jVgRB.NWrKsd.&mime_type=audio_mpeg&rc=NGRnZGRpZmQ6NWk4NDM6O0BpanFoaXQ5cmh3eTMzNzU8M0AvNTAtYjQ2NWExYzJfNTExYSNuc3NqMmRrX3NgLS1kMTZzcw%3D%3D&vvpl=1&l=20260716192906C39CB9D3B40AC1128A2E&btag=e00090000&shp=d05b14bd&shcp=- type="audio/mpeg">
     </audio>
 
     <script>
