@@ -3241,73 +3241,118 @@ await loadTickets();
 
 function openSupportChat(ticketId) {
 
+    document.getElementById("supportChatInput").dataset.ticketId = ticketId;
+
+    renderSupportMessages(ticketId);
+
+    openModal("supportChatModal");
+
+}
+
+function renderSupportMessages(ticketId) {
+
     const ticket = supportTickets.find(t => t.id === ticketId);
+
     if (!ticket) return;
 
-    document.getElementById('supportTicketId').textContent = ticket.id;
-    document.getElementById('supportChatTitle').textContent =
+    document.getElementById("supportTicketId").textContent = ticket.id;
+
+    document.getElementById("supportChatTitle").textContent =
         `Ticket #${ticket.id} - ${ticket.subject}`;
+
+    const messagesContainer =
+        document.getElementById("supportChatMessages");
 
     const isAdmin = currentUser.isAdmin;
 
-    const messagesContainer = document.getElementById('supportChatMessages');
-
     messagesContainer.innerHTML = ticket.messages.map(m => {
 
-        const senderName = isAdmin
-            ? (m.from === "admin"
-                ? "Você"
-                : (ticket.name || ticket.userName || ticket.user || "Usuário"))
-            : (m.from === "user"
-                ? "Você"
-                : "Suporte Nova Brawl");
+        let senderName;
+
+        if (isAdmin) {
+
+            if (m.from === "admin") {
+
+                senderName = "Você";
+
+            } else if (m.from === "support") {
+
+                senderName = "Suporte Nova Brawl";
+
+            } else {
+
+                senderName = ticket.userName || "Usuário";
+
+            }
+
+        } else {
+
+            senderName =
+                m.from === "user"
+                    ? "Você"
+                    : "Suporte Nova Brawl";
+
+        }
 
         return `
             <div class="chat-message ${m.from}">
                 <strong>${senderName}</strong>
                 <p>${escapeHtml(m.text)}</p>
-                <div class="msg-time">${new Date(m.time).toLocaleString('pt-BR')}</div>
+                <div class="msg-time">
+                    ${new Date(m.time).toLocaleString("pt-BR")}
+                </div>
             </div>
         `;
 
-    }).join('');
+    }).join("");
 
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    messagesContainer.scrollTop =
+        messagesContainer.scrollHeight;
 
-    document.getElementById('supportChatInput').dataset.ticketId = ticketId;
-
-    openModal('supportChatModal');
 }
-
 
 async function sendSupportMessage() {
 
-    const input = document.getElementById('supportChatInput');
+    const input = document.getElementById("supportChatInput");
+
     const ticketId = input.dataset.ticketId;
+
     const text = input.value.trim();
 
     if (!text || !ticketId) return;
 
     const ticket = supportTickets.find(t => t.id === ticketId);
+
     if (!ticket) return;
 
     ticket.messages.push({
+
         from: currentUser.isAdmin ? "admin" : "user",
+
         text: text,
+
         time: new Date().toISOString()
+
     });
 
     await updateDoc(
+
         doc(db, "supportTickets", ticket.firestoreId),
+
         {
+
             messages: ticket.messages
+
         }
+
     );
 
     input.value = "";
 
-    await loadTickets();
-    openSupportChat(ticketId);
+    input.focus();
+
+    // O onSnapshot atualizará o chat automaticamente.
+
 }
 
 
@@ -4458,7 +4503,7 @@ function openModal(modalId) {
 
 }
 
-        function closeModal(modalId) {
+function closeModal(modalId) {
 
     const modal = document.getElementById(modalId);
 
@@ -4470,18 +4515,17 @@ function openModal(modalId) {
 
     if (modalId === "supportChatModal") {
 
-        const input = document.getElementById("supportChatInput");
+        const input =
+            document.getElementById("supportChatInput");
 
         if (input) {
+
             input.value = "";
-            input.dataset.ticketId = "";
+
+            // NÃO limpa o ticketId
+
             input.blur();
-        }
 
-        const messages = document.getElementById("supportChatMessages");
-
-        if (messages) {
-            messages.innerHTML = "";
         }
 
     }
@@ -4901,23 +4945,35 @@ function listenTickets() {
 
         const supportSection = document.getElementById("supportSection");
 
-        if (supportSection && supportSection.style.display !== "none") {
+        if (
+            supportSection &&
+            supportSection.style.display !== "none"
+        ) {
             renderSupportContent();
         }
 
-        // Atualiza o chat apenas se ele estiver aberto
         const modal = document.getElementById("supportChatModal");
 
-        if (modal && modal.classList.contains("active")) {
+        if (
+            modal &&
+            modal.classList.contains("active")
+        ) {
 
             const input = document.getElementById("supportChatInput");
 
-            // Não recria o chat enquanto o usuário estiver digitando
-            if (document.activeElement !== input) {
+            if (
+                input &&
+                input.dataset.ticketId &&
+                document.activeElement !== input
+            ) {
 
-                if (input && input.dataset.ticketId) {
-                    openSupportChat(input.dataset.ticketId);
-                }
+                const scroll =
+                    document.getElementById("supportChatMessages").scrollTop;
+
+                renderSupportMessages(input.dataset.ticketId);
+
+                document.getElementById("supportChatMessages").scrollTop =
+                    scroll;
 
             }
 
