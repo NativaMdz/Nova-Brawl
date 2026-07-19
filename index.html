@@ -4581,21 +4581,28 @@ showNotification(
 
 function openModal(modalId) {
 
+    alert("1 - openModal chamada: " + modalId);
+
     const modal = document.getElementById(modalId);
 
-    if (!modal) return;
-
-    modal.classList.add('active');
-
-    document.body.style.overflow = 'hidden';
-
-    if (modalId === 'createTeamModal' && !editingTeamId) {
-        generatePlayerRows();
+    if (!modal) {
+        alert("2 - Modal NÃO encontrado");
+        return;
     }
 
+    alert("3 - Modal encontrado");
+
+    modal.classList.add("active");
+
+    alert("4 - Classe active adicionada");
+
+    document.body.style.overflow = "hidden";
+
+    alert("5 - Final da função");
 }
 
 function closeModal(modalId) {
+alert("Fechando modal: " + modalId);
 
     const modal = document.getElementById(modalId);
 
