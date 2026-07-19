@@ -1108,38 +1108,44 @@ body {
         .status-closed { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
 
         .chat-messages {
-            max-height: 400px;
-            overflow-y: auto;
-            padding: 1rem;
-            background: var(--white-10);
-            border-radius: 1rem;
-            margin-bottom: 1rem;
-        }
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 1rem;
+    background: var(--white-10);
+    border-radius: 1rem;
+    margin-bottom: 1rem;
+}
 
-        .chat-message {
-            margin-bottom: 1rem;
-            padding: 0.8rem 1rem;
-            border-radius: 0.75rem;
-            max-width: 80%;
-        }
+.chat-message {
+    margin-bottom: 1rem;
+    padding: 0.8rem 1rem;
+    border-radius: 0.75rem;
+    max-width: 80%;
+}
 
-        .chat-message.user {
-            background: var(--gold-10);
-            margin-left: auto;
-            border: 1px solid var(--gold-20);
-        }
+.chat-message.user {
+    background: var(--gold-10);
+    margin-left: auto;
+    border: 1px solid var(--gold-20);
+}
 
-        .chat-message.support {
-            background: var(--white-10);
-            margin-right: auto;
-            border: 1px solid var(--white-20);
-        }
+.chat-message.support {
+    background: var(--white-10);
+    margin-right: auto;
+    border: 1px solid var(--white-20);
+}
 
-        .chat-message .msg-time {
-            font-size: 0.7rem;
-            color: var(--white-30);
-            margin-top: 0.3rem;
-        }
+.chat-message.admin {
+    background: var(--white-10);
+    margin-right: auto;
+    border: 1px solid var(--white-20);
+}
+
+.chat-message .msg-time {
+    font-size: 0.7rem;
+    color: var(--white-30);
+    margin-top: 0.3rem;
+}
 
         .footer {
             background: var(--gray-dark);
@@ -4453,12 +4459,34 @@ function openModal(modalId) {
 }
 
         function closeModal(modalId) {
-            const modal = document.getElementById(modalId);
-            if (modal) {
-                modal.classList.remove('active');
-                document.body.style.overflow = '';
-            }
+
+    const modal = document.getElementById(modalId);
+
+    if (!modal) return;
+
+    modal.classList.remove("active");
+
+    document.body.style.overflow = "";
+
+    if (modalId === "supportChatModal") {
+
+        const input = document.getElementById("supportChatInput");
+
+        if (input) {
+            input.value = "";
+            input.dataset.ticketId = "";
+            input.blur();
         }
+
+        const messages = document.getElementById("supportChatMessages");
+
+        if (messages) {
+            messages.innerHTML = "";
+        }
+
+    }
+
+}
 
         function toggleSidebar() {
             document.getElementById('sidebar').classList.toggle('active');
@@ -4871,18 +4899,28 @@ function listenTickets() {
             });
         });
 
-        // Atualiza a tela de suporte, se estiver aberta
         const supportSection = document.getElementById("supportSection");
 
         if (supportSection && supportSection.style.display !== "none") {
             renderSupportContent();
         }
 
-        // Atualiza o chat aberto automaticamente
-        const input = document.getElementById("supportChatInput");
+        // Atualiza o chat apenas se ele estiver aberto
+        const modal = document.getElementById("supportChatModal");
 
-        if (input && input.dataset.ticketId) {
-            openSupportChat(input.dataset.ticketId);
+        if (modal && modal.classList.contains("active")) {
+
+            const input = document.getElementById("supportChatInput");
+
+            // Não recria o chat enquanto o usuário estiver digitando
+            if (document.activeElement !== input) {
+
+                if (input && input.dataset.ticketId) {
+                    openSupportChat(input.dataset.ticketId);
+                }
+
+            }
+
         }
 
     });
