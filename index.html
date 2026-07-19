@@ -3385,7 +3385,7 @@ async function removeExpiredTickets() {
         if (
             ticket.status === "closed" &&
             ticket.closedAt &&
-            agora - ticket.closedAt > 30000 // 30 segundos
+            agora - ticket.closedAt > 3600000 // 30 segundos
         ) {
 
             await deleteDoc(doc(db, "supportTickets", ticket.firestoreId));
