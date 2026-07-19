@@ -3639,98 +3639,190 @@ async function removeExpiredTickets() {
             }).join('');
         }
 
-       async function renderSupportContent() {
-            const container = document.getElementById('supportContent');
-            if (!container) return;
-            
-            if (!currentUser) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-lock"></i>
-                        <h3>Faça login para acessar o suporte</h3>
-                        <p>Você precisa estar logado para abrir tickets de suporte.</p>
+async function renderSupportContent() {
+
+    const container = document.getElementById('supportContent');
+    if (!container) return;
+
+    if (!currentUser) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-lock"></i>
+                <h3>Faça login para acessar o suporte</h3>
+                <p>Você precisa estar logado para abrir tickets de suporte.</p>
+            </div>
+        `;
+        return;
+    }
+
+    // NÃO usa mais loadTickets()
+
+    const myTickets = currentUser.isAdmin
+        ? supportTickets
+        : supportTickets.filter(t => t.userId === currentUser.id);
+
+    container.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;margin-bottom:2rem;">
+            <p style="color:var(--white-70);">
+                Bem-vindo à Central de Suporte,
+                <strong class="text-gold">${escapeHtml(currentUser.name)}</strong>!
+            </p>
+
+            <button class="btn btn-primary" onclick="openNewTicket()">
+                <i class="fas fa-plus-circle"></i> Abrir Novo Ticket
+            </button>
+        </div>
+
+        <h3 style="color:var(--gold);margin-bottom:1rem;">
+            <i class="fas fa-ticket-alt"></i>
+            ${currentUser.isAdmin ? "Todos os Tickets" : "Meus Tickets"}
+            (${myTickets.length})
+        </h3>
+
+        ${
+            myTickets.length === 0
+            ? `
+                <div class="empty-state">
+                    <i class="fas fa-inbox"></i>
+                    <h3>Nenhum ticket encontrado</h3>
+                    <p>Nenhum ticket disponível.</p>
+                </div>
+            `
+            : myTickets.map(t => {
+
+                const statusLabels = {
+                    open: {
+                        text: "Aberto",
+                        class: "status-open"
+                    },
+                    "in-progress": {
+                        text: "Em andamento",
+                        class: "status-progress"
+                    },
+                    closed: {
+                        text: "Fechado",
+                        class: "status-closed"
+                    }
+                };
+
+                const status =
+                    statusLabels[t.status] || statusLabels.open;
+
+                return `
+                    <div class="ticket-card">
+
+                        <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:1rem;">
+
+                            <div>
+
+                                <span class="ticket-status ${status.class}">
+                                    ${status.text}
+                                </span>
+
+                                <strong style="margin-left:.5rem;">
+                                    #${t.id}
+                                </strong>
+
+                                <h4 style="margin-top:.5rem;">
+                                    ${escapeHtml(t.subject)}
+                                </h4>
+
+                                ${
+                                    currentUser.isAdmin
+                                    ? `
+                                    <p style="color:var(--gold);font-size:.85rem;">
+                                        👤 ${escapeHtml(t.userName || "Usuário")}
+                                    </p>
+                                    `
+                                    : ""
+                                }
+
+                                <p style="color:var(--white-50);font-size:.85rem;">
+                                    Categoria: ${t.category}
+                                </p>
+
+                                <p style="color:var(--white-30);font-size:.8rem;">
+                                    Criado em
+                                    ${new Date(t.createdAt).toLocaleString("pt-BR")}
+                                </p>
+
+                                <p style="color:var(--white-30);font-size:.8rem;">
+                                    ${t.messages.length} mensagens
+                                </p>
+
+                            </div>
+
+                            <div style="display:flex;gap:.5rem;">
+
+                                <button
+                                    class="btn btn-outline btn-sm"
+                                    onclick="openSupportChat('${t.id}')">
+
+                                    <i class="fas fa-comments"></i>
+                                    Conversar
+
+                                </button>
+
+                                ${
+                                    t.status !== "closed"
+                                    ? `
+                                    <button
+                                        class="btn btn-danger btn-sm"
+                                        onclick="closeTicket('${t.id}')">
+
+                                        <i class="fas fa-times"></i>
+                                        Fechar
+
+                                    </button>
+                                    `
+                                    : ""
+                                }
+
+                            </div>
+
+                        </div>
+
                     </div>
                 `;
-                return;
-            }
-            
-await loadTickets();
 
-const myTickets = currentUser.isAdmin
-    ? supportTickets
-    : supportTickets.filter(t => t.userId === currentUser.id);
-            
-            container.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;">
-                    <p style="color: var(--white-70);">Bem-vindo à Central de Suporte, <strong class="text-gold">${escapeHtml(currentUser.name)}</strong>!</p>
-                    <button class="btn btn-primary" onclick="openNewTicket()">
-                        <i class="fas fa-plus-circle"></i> Abrir Novo Ticket
-                    </button>
-                </div>
-                
-                <h3 style="color: var(--gold); margin-bottom: 1rem;">
-                    <i class="fas fa-ticket-alt"></i> Meus Tickets (${myTickets.length})
-                </h3>
-                
-                ${myTickets.length === 0 ? `
-                    <div class="empty-state">
-                        <i class="fas fa-inbox"></i>
-                        <h3>Nenhum ticket aberto</h3>
-                        <p>Você ainda não abriu nenhum ticket de suporte.</p>
-                    </div>
-                ` : myTickets.map(t => {
-                    const statusLabels = {
-                        open: { text: 'Aberto', class: 'status-open' },
-                        'in-progress': { text: 'Em andamento', class: 'status-progress' },
-                        closed: { text: 'Fechado', class: 'status-closed' }
-                    };
-                    const status = statusLabels[t.status] || statusLabels.open;
-                    
-                    return `
-                        <div class="ticket-card">
-                            <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 1rem;">
-                                <div>
-                                    <span class="ticket-status ${status.class}">${status.text}</span>
-                                    <strong style="margin-left: 0.5rem;">#${t.id}</strong>
-                                    <h4 style="margin-top: 0.5rem;">${escapeHtml(t.subject)}</h4>
-                                    <p style="color: var(--white-50); font-size: 0.85rem;">Categoria: ${t.category}</p>
-                                    <p style="color: var(--white-30); font-size: 0.8rem;">Criado em ${new Date(t.createdAt).toLocaleString('pt-BR')}</p>
-                                    <p style="color: var(--white-30); font-size: 0.8rem;">${t.messages.length} mensagens</p>
-                                </div>
-                                <div style="display: flex; gap: 0.5rem;">
-                                    <button class="btn btn-outline btn-sm" onclick="openSupportChat('${t.id}')">
-                                        <i class="fas fa-comments"></i> Conversar
-                                    </button>
-                                    ${t.status !== 'closed' ? `
-                                        <button class="btn btn-danger btn-sm" onclick="closeTicket('${t.id}')">
-                                            <i class="fas fa-times"></i> Fechar
-                                        </button>
-                                    ` : ''}
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }).join('')}
-                
-                <div class="glass" style="padding: 2rem; border-radius: 1rem; margin-top: 2rem;">
-                    <h3 style="color: var(--gold); margin-bottom: 1rem;"><i class="fas fa-question-circle"></i> Perguntas Frequentes</h3>
-                    <div style="display: grid; gap: 1rem;">
-                        <div class="glass-hover" style="padding: 1rem; border-radius: 0.75rem;">
-                            <strong>Como criar uma equipe?</strong>
-                            <p style="color: var(--white-50);">Vá até a seção "Equipes" e clique em "Criar Nova Equipe". Preencha os dados dos 3 jogadores.</p>
-                        </div>
-                        <div class="glass-hover" style="padding: 1rem; border-radius: 0.75rem;">
-                            <strong>Como me inscrever em campeonatos?</strong>
-                            <p style="color: var(--white-50);">É necessário ter uma equipe registrada. Depois, vá em "Campeonatos" e clique em "Inscrever Equipe".</p>
-                        </div>
-                        <div class="glass-hover" style="padding: 1rem; border-radius: 0.75rem;">
-                            <strong>Como funciona o ranking?</strong>
-                            <p style="color: var(--white-50);">O ranking é baseado no sistema ELO. Ganhe pontos participando de campeonatos e vencendo partidas.</p>
-                        </div>
-                    </div>
-                </div>
-            `;
+            }).join("")
         }
+
+        <div class="glass" style="padding:2rem;border-radius:1rem;margin-top:2rem;">
+
+            <h3 style="color:var(--gold);margin-bottom:1rem;">
+                <i class="fas fa-question-circle"></i>
+                Perguntas Frequentes
+            </h3>
+
+            <div style="display:grid;gap:1rem;">
+
+                <div class="glass-hover" style="padding:1rem;border-radius:.75rem;">
+                    <strong>Como criar uma equipe?</strong>
+                    <p style="color:var(--white-50);">
+                        Vá até a seção "Equipes" e clique em "Criar Nova Equipe".
+                    </p>
+                </div>
+
+                <div class="glass-hover" style="padding:1rem;border-radius:.75rem;">
+                    <strong>Como me inscrever em campeonatos?</strong>
+                    <p style="color:var(--white-50);">
+                        É necessário possuir uma equipe registrada.
+                    </p>
+                </div>
+
+                <div class="glass-hover" style="padding:1rem;border-radius:.75rem;">
+                    <strong>Como funciona o ranking?</strong>
+                    <p style="color:var(--white-50);">
+                        O ranking utiliza o sistema ELO.
+                    </p>
+                </div>
+
+            </div>
+
+        </div>
+    `;
+}
 
         function renderChatContent() {
             const container = document.getElementById('chatContent');
