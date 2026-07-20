@@ -753,6 +753,7 @@ body {
             width: 90%;
             max-height: 90vh;
             overflow-y: auto;
+            overflow-x: hidden;
             animation: fadeIn 0.3s ease-out;
         }
 
@@ -1794,14 +1795,14 @@ body {
             
             <nav>
                 <ul class="nav-links" id="navLinks">
-                    <li><a data-section="home" class="active">Início</a></li>
-                    <li><a data-section="tournaments">Campeonatos</a></li>
-                    <li><a data-section="teams">Equipes</a></li>
-                    <li><a data-section="rankings">Ranking</a></li>
-                    <li><a data-section="news">Notícias</a></li>
-                    <li><a data-section="chat">Chat</a></li>
-                    <li><a data-section="support">Suporte</a></li>
-                    <li><a data-section="store">Loja</a></li>
+<li><a data-section="home" class="active">Início</a></li>
+<li><a data-section="tournaments">Campeonatos</a></li>
+<li><a data-section="teams">Equipes</a></li>
+<li><a data-section="rankings">Ranking</a></li>
+<li><a data-section="news">Notícias</a></li>
+<li><a data-section="chat">Chat</a></li>
+<li><a data-section="store">Loja</a></li>
+<li><a data-section="support">Suporte</a></li>
                 </ul>
             </nav>
             
@@ -1827,8 +1828,8 @@ body {
             <li><a data-section="rankings"><i class="fas fa-chart-line"></i> Ranking</a></li>
             <li><a data-section="news"><i class="fas fa-newspaper"></i> Notícias</a></li>
             <li><a data-section="chat"><i class="fas fa-comments"></i> Chat</a></li>
+<li><a data-section="store"><i class="fas fa-shopping-cart"></i> Loja</a></li>
             <li><a data-section="support"><i class="fas fa-headset"></i> Suporte</a></li>
-            <li><a data-section="store"><i class="fas fa-shopping-cart"></i> Loja</a></li>
         </ul>
     </div>
 
@@ -2162,8 +2163,9 @@ body {
         </div>
     </div>
 
+    <!-- MODAL DE VISUALIZAÇÃO DA EQUIPE APRIMORADO -->
     <div class="modal-overlay" id="viewTeamModal">
-        <div class="modal modal-lg">
+        <div class="modal modal-lg" style="overflow-x: hidden;">
             <div class="modal-header" id="viewTeamHeader"></div>
             <div id="viewTeamBody"></div>
             <div style="text-align: center; margin-top: 1.5rem;">
@@ -2586,9 +2588,6 @@ body {
                             <i class="fas fa-user-circle"></i> Meu perfil
                         </a>
                             <hr style="border-color: var(--white-10); margin: 0.5rem 0;">
-                            <a onclick="showSection('store'); closeDropdown();">
-                                <i class="fas fa-shopping-cart"></i> Loja
-                            </a>
                             <a onclick="showSection('support'); closeDropdown();">
                                 <i class="fas fa-headset"></i> Suporte
                             </a>
@@ -3772,6 +3771,9 @@ body {
             }
         }
 
+        // ============================================
+        // FUNÇÃO DE VISUALIZAR EQUIPE ATUALIZADA
+        // ============================================
         function viewTeam(teamId) {
             const team = teams.find(t => t.id === teamId) || generateRankingData().find(t => t.id === teamId);
             if (!team) {
@@ -3786,14 +3788,33 @@ body {
                 : `<div class="team-logo-placeholder" style="background:linear-gradient(135deg, var(--gold), var(--gold-dark));width:100px;height:100px;margin:0 auto;"><i class="fas fa-shield-halved"></i></div>`;
 
             header.innerHTML = `${logoContent}<h2 class="modal-title" style="margin-top:1rem;">${escapeHtml(team.name)}</h2><p class="modal-subtitle">Win Rate: ${team.winRate || 'N/A'}% | ELO: ${team.elo || 'N/A'}</p>`;
+            
+            // Layout ajustado usando flex-direction: column e limitando overflow para evitar scroll horizontal
             body.innerHTML = `
                 <h4 style="color:var(--gold);margin-bottom:1rem;"><i class="fas fa-users"></i> Jogadores</h4>
-                <div style="display:grid;gap:.8rem;">
+                <div style="display:flex;flex-direction:column;gap:.8rem;width:100%;box-sizing:border-box;">
                     ${team.players.map(p => `
-                        <div style="display:flex;align-items:center;gap:1rem;padding:1rem;background:var(--white-10);border-radius:.75rem;cursor:pointer;" onclick="closeModal('viewTeamModal'); setTimeout(function(){ viewPlayerProfile('${p.tag}'); }, 300);">
-                            <div style="width:50px;height:50px;border-radius:50%;background:var(--gold-10);display:flex;align-items:center;justify-content:center;font-size:1.5rem;">${p.isCaptain ? "👑" : "🎮"}</div>
-                            <div><strong>${escapeHtml(p.nick)}</strong><span style="color:var(--white-50);margin-left:.5rem;">${escapeHtml(p.tag)}</span><p style="color:var(--gold);font-size:.85rem;">${(p.trophies || 0).toLocaleString()} Troféus</p></div>
-                            ${p.isCaptain ? `<span style="background:var(--gold);color:var(--black);padding:.2rem .6rem;border-radius:1rem;font-size:.75rem;margin-left:auto;">Capitão</span>` : ""}
+                        <div style="display:flex;align-items:center;gap:1rem;padding:1rem;background:var(--white-10);border-radius:.75rem;cursor:pointer;width:100%;box-sizing:border-box;" onclick="closeModal('viewTeamModal'); setTimeout(function(){ viewPlayerProfile('${p.tag}'); }, 300);">
+                            
+                            <div style="width:50px;height:50px;border-radius:50%;background:var(--gold-10);display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;">
+                                ${p.isCaptain ? "👑" : "🎮"}
+                            </div>
+                            
+                            <div style="display:flex;flex-direction:column;min-width:0;flex:1;gap:0.3rem;">
+                                <strong style="font-size:1.05rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;">
+                                    ${escapeHtml(p.nick)}
+                                </strong>
+                                
+                                <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;line-height:1;">
+                                    <span style="color:var(--white-50);font-size:0.85rem;">${escapeHtml(p.tag)}</span>
+                                    ${p.isCaptain ? `<span style="background:var(--gold);color:var(--black);padding:.15rem .5rem;border-radius:1rem;font-size:.7rem;font-weight:700;">Capitão</span>` : ""}
+                                </div>
+                                
+                                <p style="color:var(--gold);font-size:.85rem;margin:0;line-height:1.2;">
+                                    <i class="fas fa-trophy" style="font-size:0.8rem;margin-right:0.3rem;"></i>${(p.trophies || 0).toLocaleString()} Troféus
+                                </p>
+                            </div>
+
                         </div>
                     `).join("")}
                 </div>
@@ -3801,9 +3822,9 @@ body {
                     <hr style="margin:2rem 0;border:1px solid rgba(255,255,255,.08);">
                     <h4 style="color:var(--gold);text-align:center;margin-bottom:.3rem;"><i class="fas fa-shield-halved"></i> Painel Administrativo</h4>
                     <p style="text-align:center;color:var(--white-50);font-size:.85rem;margin-bottom:1.2rem;">Ações disponíveis apenas para administradores.</p>
-                    <div style="display:flex;flex-direction:column;align-items:center;gap:.75rem;">
-                        <button class="btn btn-warning" style="width:220px;justify-content:center;" onclick="adminEditTeam('${team.id}')"><i class="fas fa-pen"></i> Editar Equipe</button>
-                        <button class="btn btn-danger" style="width:220px;justify-content:center;" onclick="deleteTeam('${team.id}')"><i class="fas fa-trash"></i> Excluir Equipe</button>
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:.75rem;width:100%;box-sizing:border-box;">
+                        <button class="btn btn-warning" style="width:100%;max-width:250px;justify-content:center;" onclick="adminEditTeam('${team.id}')"><i class="fas fa-pen"></i> Editar Equipe</button>
+                        <button class="btn btn-danger" style="width:100%;max-width:250px;justify-content:center;" onclick="deleteTeam('${team.id}')"><i class="fas fa-trash"></i> Excluir Equipe</button>
                     </div>
                 ` : ""}
             `;
