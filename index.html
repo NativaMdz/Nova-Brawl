@@ -1055,7 +1055,7 @@ body {
         }
 
 .elo-master { background: rgba(185, 28, 28, 0.2); color: #dc2626; }
-/*                                ↑                    ↑
+/* ↑                    ↑
                               fundo vermelho      texto vermelho
                               com transparência   escuro */
         .elo-diamond { background: rgba(139, 92, 246, 0.2); color: #a78bfa; }
@@ -2038,7 +2038,10 @@ input[type="checkbox"] {
         </div>
         <div class="form-group">
             <label class="form-label">Senha</label>
-            <input type="password" class="form-input" id="loginPassword" placeholder="••••••••" required minlength="6">
+            <div style="position: relative;">
+                <input type="password" class="form-input" id="loginPassword" placeholder="••••••••" required minlength="6" style="padding-right: 2.5rem;">
+                <i class="fas fa-eye" onclick="togglePasswordVisibility('loginPassword', this)" style="position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--white-50);"></i>
+            </div>
         </div>
         <div class="form-group">
             <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: var(--white-70); font-size: 0.9rem;">
@@ -2122,11 +2125,17 @@ input[type="checkbox"] {
                 </div>
                 <div class="form-group">
                     <label class="form-label">Senha</label>
-                    <input type="password" class="form-input" id="regPassword" placeholder="Mínimo 6 caracteres" required minlength="6">
+                    <div style="position: relative;">
+                        <input type="password" class="form-input" id="regPassword" placeholder="Mínimo 6 caracteres" required minlength="6" style="padding-right: 2.5rem;">
+                        <i class="fas fa-eye" onclick="togglePasswordVisibility('regPassword', this)" style="position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--white-50);"></i>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Confirmar Senha</label>
-                    <input type="password" class="form-input" id="regConfirmPassword" placeholder="Repita a senha" required minlength="6">
+                    <div style="position: relative;">
+                        <input type="password" class="form-input" id="regConfirmPassword" placeholder="Repita a senha" required minlength="6" style="padding-right: 2.5rem;">
+                        <i class="fas fa-eye" onclick="togglePasswordVisibility('regConfirmPassword', this)" style="position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--white-50);"></i>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: var(--white-70); font-size: 0.9rem;">
@@ -4549,6 +4558,19 @@ showNotification(
         }
 
         // ===== UTILITY FUNCTIONS =====
+        function togglePasswordVisibility(inputId, iconElement) {
+            const input = document.getElementById(inputId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                iconElement.classList.remove('fa-eye');
+                iconElement.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                iconElement.classList.remove('fa-eye-slash');
+                iconElement.classList.add('fa-eye');
+            }
+        }
+
         function showNotification(message, type = 'info') {
             const container = document.getElementById('toastContainer');
             const toast = document.createElement('div');
