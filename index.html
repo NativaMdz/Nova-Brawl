@@ -3264,10 +3264,11 @@ function renderSupportMessages(ticketId) {
 
     if (!ticket) return;
 
-    document.getElementById("supportTicketId").textContent = ticket.id;
-
-    document.getElementById("supportChatTitle").textContent =
-        `Ticket #${ticket.id} - ${ticket.subject}`;
+    // CORREÇÃO: Usar innerHTML para preservar o span#supportTicketId
+    const titleEl = document.getElementById("supportChatTitle");
+    if (titleEl) {
+        titleEl.innerHTML = `Ticket #<span id="supportTicketId">${ticket.id}</span> - ${escapeHtml(ticket.subject)}`;
+    }
 
     const messagesContainer =
         document.getElementById("supportChatMessages");
@@ -5066,26 +5067,17 @@ function listenTickets() {
             renderSupportContent();
         }
 
-        // Se o chat estiver aberto, atualiza apenas as mensagens
+        // Se o chat estiver aberto, atualiza apenas as mensagens (agora MESMO se estiver digitando)
         if (
             modal &&
             modal.classList.contains("active")
         ) {
-
             const input = document.getElementById("supportChatInput");
-
-            if (
-                input &&
-                input.dataset.ticketId &&
-                document.activeElement !== input
-            ) {
-
-                openSupportChat(input.dataset.ticketId);
-
+            if (input && input.dataset.ticketId) {
+                // Atualiza as mensagens direto (não pisca a tela e não tira o foco de digitação)
+                renderSupportMessages(input.dataset.ticketId);
             }
-
         }
-
     });
 
 }
