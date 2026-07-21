@@ -784,7 +784,7 @@ body {
     .header-actions .btn {
     padding: .5rem .75rem;
     font-size: .82rem;
-            }
+    }
 
     .modal {
         width: calc(100vw - 20px);
@@ -2638,8 +2638,8 @@ body {
             const sideAdmin = document.getElementById('sidebarAdminBtn');
             const navAdmin = document.getElementById('navAdminBtn');
             
-            if (sideAdmin) sideAdmin.style.display = (currentUser && currentUser.isAdmin) ? 'flex' : 'none';
-            if (navAdmin) navAdmin.style.display = (currentUser && currentUser.isAdmin) ? 'block' : 'none';
+            if (sideAdmin) sideAdmin.style.display = (currentUser && currentUser.isAdmin) ? 'list-item' : 'none';
+            if (navAdmin) navAdmin.style.display = (currentUser && currentUser.isAdmin) ? 'list-item' : 'none';
             
             if (currentUser) {
                 headerActions.innerHTML = `
@@ -4680,4 +4680,4 @@ body {
 </div>
 
 </body>
-    </html>
+                        </html>
