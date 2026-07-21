@@ -315,16 +315,6 @@ body {
             transform: translateY(-2px);
         }
 
-        .btn-warning {
-            background: #f59e0b;
-            color: var(--white);
-        }
-
-        .btn-warning:hover {
-            background: #d97706;
-            transform: translateY(-2px);
-        }
-
         .btn-sm {
             padding: 0.4rem 1rem;
             font-size: 0.8rem;
@@ -1819,7 +1809,8 @@ body {
 <li><a data-section="news">Notícias</a></li>
 <li><a data-section="chat">Chat</a></li>
 <li><a data-section="store">Loja</a></li>
-<li id="desktopNavAdmin" style="display: none;"><a data-section="admin" style="color: var(--gold);"><i class="fas fa-shield-alt"></i> Administração</a></li>
+<li id="navAdminBtn" style="display: none;"><a data-section="admin">Administração</a></li>
+<li><a data-section="support">Suporte</a></li>
                 </ul>
             </nav>
             
@@ -1846,7 +1837,7 @@ body {
             <li><a data-section="news"><i class="fas fa-newspaper"></i> Notícias</a></li>
             <li><a data-section="chat"><i class="fas fa-comments"></i> Chat</a></li>
             <li><a data-section="store"><i class="fas fa-shopping-cart"></i> Loja</a></li>
-            <li id="sidebarNavAdmin" style="display: none;"><a data-section="admin" style="color: var(--gold);"><i class="fas fa-shield-alt"></i> Administração</a></li>
+            <li id="sidebarAdminBtn" style="display: none;"><a data-section="admin"><i class="fas fa-cog"></i> Administração</a></li>
             <li><a data-section="support"><i class="fas fa-headset"></i> Suporte</a></li>
         </ul>
     </div>
@@ -1987,68 +1978,24 @@ body {
             </div>
         </section>
 
-        <!-- ADMIN Section -->
+        <!-- Admin Section -->
         <section id="adminSection" style="display: none;">
-            <h2 class="section-title"><i class="fas fa-shield-alt"></i> Painel Administrativo</h2>
-            <p style="color: var(--white-70); margin-bottom: 2rem;">Gerenciamento restrito de Códigos de Acesso para criação de equipes.</p>
+            <h2 class="section-title"><i class="fas fa-cog"></i> Administração</h2>
             
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
-                
-                <div class="glass" style="padding: 1.5rem; border-radius: 1rem;">
-                    <h3 style="color: var(--gold); margin-bottom: 1rem;"><i class="fas fa-key"></i> Gerar Novo Código</h3>
-                    <div class="form-group">
-                        <label class="form-label">Código Personalizado (Opcional):</label>
-                        <input type="text" class="form-input" id="adminCustomCode" placeholder="Ex: NOVA2026">
+            <div class="glass" style="padding: 2rem; border-radius: 1rem; margin-top: 2rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;">
+                    <div>
+                        <h3 style="color: var(--gold);"><i class="fas fa-key"></i> Códigos de Acesso</h3>
+                        <p style="color: var(--white-50); font-size: 0.9rem; margin-top: 0.5rem;">Gerencie os códigos necessários para a criação de novas equipes.</p>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">Quantidade a gerar (se automático):</label>
-                        <input type="number" class="form-input" id="adminCodeAmount" value="1" min="1" max="50">
-                    </div>
-                    <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-                        <button class="btn btn-primary" style="flex: 1; justify-content: center;" onclick="generateAccessCode(false)">
-                            <i class="fas fa-magic"></i> Gerar Automático
-                        </button>
-                        <button class="btn btn-outline" style="flex: 1; justify-content: center;" onclick="generateAccessCode(true)">
-                            <i class="fas fa-plus"></i> Criar Personalizado
-                        </button>
-                    </div>
+                    <button class="btn btn-primary" onclick="generateAccessCode()">
+                        <i class="fas fa-plus"></i> Gerar Código
+                    </button>
                 </div>
                 
-                <div class="glass" style="padding: 1.5rem; border-radius: 1rem;">
-                    <h3 style="color: var(--gold); margin-bottom: 1rem;"><i class="fas fa-filter"></i> Filtros e Busca</h3>
-                    <div class="form-group">
-                        <label class="form-label">Pesquisar Código:</label>
-                        <input type="text" class="form-input" id="adminSearchCode" placeholder="Buscar por código..." oninput="filterAccessCodes()">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Status:</label>
-                        <select class="form-select" id="adminFilterStatus" onchange="filterAccessCodes()">
-                            <option value="all">Todos</option>
-                            <option value="available">Disponíveis</option>
-                            <option value="used">Utilizados</option>
-                        </select>
-                    </div>
+                <div id="accessCodesList" style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));">
+                    <!-- Codes will be injected here -->
                 </div>
-
-            </div>
-
-            <div class="glass" style="padding: 1.5rem; border-radius: 1rem; overflow-x: auto;">
-                <h3 style="color: var(--gold); margin-bottom: 1rem;"><i class="fas fa-list"></i> Códigos Cadastrados</h3>
-                <table class="ranking-table" id="adminCodesTable">
-                    <thead>
-                        <tr>
-                            <th>Código</th>
-                            <th>Status</th>
-                            <th>Criação</th>
-                            <th>Utilização</th>
-                            <th>Equipe</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody id="adminCodesBody">
-                        <!-- Conteúdo dinâmico -->
-                    </tbody>
-                </table>
             </div>
         </section>
     </main>
@@ -2113,7 +2060,31 @@ body {
                     <input type="checkbox" id="rememberMe" style="accent-color: var(--gold);"> Lembrar-me
                 </label>
             </div>
-            <button class="btn btn-primary" id="loginBtn" style="width: 100%; justify-content: center; padding: 0.9rem;" onclick="handleLogin(event)">
+            <button class="btn btn-primary" id="loginBtn" style="width: 100%; justify-content: center; padding: 0.9rem;" onclick="
+                var email = document.getElementById('loginEmail').value.trim();
+                var password = document.getElementById('loginPassword').value;
+                var rememberMe = document.getElementById('rememberMe').checked;
+                
+                if (!email || !password) {
+                    showNotification('Preencha todos os campos!', 'error');
+                    return;
+                }
+                
+                signInWithEmailAndPassword(auth, email, password)
+                .then(function(cred) {
+                    // Dados serão atualizados no onAuthStateChanged
+                    closeModal('loginModal');
+                })
+                .catch(function(err) {
+                    if (err.code === 'auth/invalid-credential') {
+                        showNotification('E-mail ou senha incorretos!', 'error');
+                    } else if (err.code === 'auth/user-not-found') {
+                        showNotification('E-mail não cadastrado!', 'error');
+                    } else {
+                        showNotification('Erro: ' + err.message, 'error');
+                    }
+                });
+            ">
                 <i class="fas fa-sign-in-alt"></i> Entrar
             </button>
 
@@ -2185,13 +2156,11 @@ body {
                 <p class="modal-subtitle">Preencha os dados da sua equipe para começar a competir</p>
             </div>
             <form id="createTeamForm" onsubmit="handleCreateTeam(event)">
-                
                 <div class="form-group" id="accessCodeGroup">
-                    <label class="form-label" style="color: var(--gold);"><i class="fas fa-key"></i> Código de Acesso:</label>
-                    <input type="text" class="form-input" id="accessCodeInput" placeholder="Insira o código fornecido pela administração" required style="border-color: var(--gold); background: rgba(246, 201, 69, 0.05);">
-                    <p style="font-size: 0.8rem; color: var(--white-50); margin-top: 0.3rem;">Obrigatório para registrar uma nova equipe no sistema.</p>
+                    <label class="form-label">Código de Acesso:</label>
+                    <input type="text" class="form-input" id="teamAccessCode" placeholder="Ex: NB-8X4P-91KL" required>
+                    <span class="error-message">Código inválido ou já utilizado.</span>
                 </div>
-
                 <div class="form-group">
                     <label class="form-label">Nome da Equipe:</label>
                     <input type="text" class="form-input" id="teamName" placeholder="Ex: Nova Elite" required minlength="3" maxlength="30">
@@ -2320,9 +2289,6 @@ body {
             }
         ]));
         supportTickets = JSON.parse(localStorage.getItem('novaBrawlTickets') || '[]');
-        
-        let globalAccessCodes = []; // Array to store access codes for admin panel
-
         let uploadedLogoData = null;
         let editingTeamId = null;
 
@@ -2631,8 +2597,11 @@ body {
         function updateUI() {
             const headerActions = document.getElementById('headerActions');
             const heroLoginBtn = document.getElementById('heroLoginBtn');
-            const navAdminDesktop = document.getElementById('desktopNavAdmin');
-            const navAdminSidebar = document.getElementById('sidebarNavAdmin');
+            const sideAdmin = document.getElementById('sidebarAdminBtn');
+            const navAdmin = document.getElementById('navAdminBtn');
+            
+            if (sideAdmin) sideAdmin.style.display = (currentUser && currentUser.isAdmin) ? 'flex' : 'none';
+            if (navAdmin) navAdmin.style.display = (currentUser && currentUser.isAdmin) ? 'block' : 'none';
             
             if (currentUser) {
                 headerActions.innerHTML = `
@@ -2716,17 +2685,6 @@ body {
                 if (heroLoginBtn) {
                     heroLoginBtn.innerHTML = '<i class="fas fa-trophy"></i> Ver Campeonatos';
                 }
-                
-                // Exibe botão de Administração apenas se for Admin
-                if(currentUser.isAdmin) {
-                    if(navAdminDesktop) navAdminDesktop.style.display = 'block';
-                    if(navAdminSidebar) navAdminSidebar.style.display = 'block';
-                    listenAccessCodes(); // Inicia a escuta de códigos pro painel admin
-                } else {
-                    if(navAdminDesktop) navAdminDesktop.style.display = 'none';
-                    if(navAdminSidebar) navAdminSidebar.style.display = 'none';
-                }
-
             } else {
                 headerActions.innerHTML = `
                     <div style="position: relative;">
@@ -2744,9 +2702,6 @@ body {
                 if (heroLoginBtn) {
                     heroLoginBtn.innerHTML = '<i class="fas fa-users"></i> Entrar na Comunidade';
                 }
-                
-                if(navAdminDesktop) navAdminDesktop.style.display = 'none';
-                if(navAdminSidebar) navAdminSidebar.style.display = 'none';
             }
             
             handleResponsive();
@@ -3301,7 +3256,6 @@ body {
             renderSupportContent();
             renderChatContent();
             renderStore();
-            renderAccessCodes();
         }
 
         function renderStats() {
@@ -3614,7 +3568,7 @@ body {
                     <div style="display:grid;gap:1rem;">
                         <div class="glass-hover" style="padding:1rem;border-radius:.75rem;">
                             <strong>Como criar uma equipe?</strong>
-                            <p style="color:var(--white-50);">Vá até a seção "Equipes" e clique em "Criar Nova Equipe". Você precisará de um Código de Acesso fornecido pela administração.</p>
+                            <p style="color:var(--white-50);">Vá até a seção "Equipes" e clique em "Criar Nova Equipe".</p>
                         </div>
                         <div class="glass-hover" style="padding:1rem;border-radius:.75rem;">
                             <strong>Como me inscrever em campeonatos?</strong>
@@ -3723,7 +3677,7 @@ body {
                         </div>
                         <div style="display:flex;gap:.5rem;margin-top:1rem;">
                             <button class="btn btn-outline btn-sm" style="flex:1;justify-content:center;" onclick="viewTeam('${team.id}')"><i class="fas fa-eye"></i> Ver</button>
-                            ${isCaptain || currentUser?.isAdmin ? `
+                            ${isCaptain ? `
                                 <button class="btn btn-warning btn-sm" style="flex:1;justify-content:center;" onclick="editTeam('${team.id}')"><i class="fas fa-pen"></i> Editar</button>
                                 <button class="btn btn-danger btn-sm" style="flex:1;justify-content:center;" onclick="deleteTeam('${team.id}')"><i class="fas fa-trash"></i> Excluir</button>
                             ` : ""}
@@ -3732,6 +3686,76 @@ body {
                 `;
             }).join('');
         }
+
+        // ===== ADMIN / CÓDIGOS DE ACESSO =====
+        async function generateAccessCode() {
+            if (!currentUser || !currentUser.isAdmin) return;
+            
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            const part1 = Array.from({length: 4}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+            const part2 = Array.from({length: 4}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+            const code = `NB-${part1}-${part2}`;
+            
+            try {
+                await addDoc(collection(db, "accessCodes"), {
+                    code: code
+                });
+                showNotification(`Código ${code} gerado com sucesso!`, 'success');
+                loadAccessCodes();
+            } catch (err) {
+                console.error("Erro ao gerar código:", err);
+                showNotification('Erro ao gerar código de acesso.', 'error');
+            }
+        }
+
+        async function loadAccessCodes() {
+            if (!currentUser || !currentUser.isAdmin) return;
+            const container = document.getElementById('accessCodesList');
+            if (!container) return;
+            
+            try {
+                const q = query(collection(db, "accessCodes"));
+                const snapshot = await getDocs(q);
+                
+                if (snapshot.empty) {
+                    container.innerHTML = `
+                        <div class="empty-state" style="grid-column: 1 / -1;">
+                            <i class="fas fa-key"></i>
+                            <h3>Nenhum código gerado</h3>
+                            <p>Clique no botão acima para gerar um novo código de acesso.</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                let html = '';
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    html += `
+                        <div class="glass-hover" style="padding: 1rem; border-radius: 0.75rem; border: 1px solid var(--white-10); display: flex; align-items: center; justify-content: space-between;">
+                            <strong style="color: var(--gold); letter-spacing: 1px; font-size: 1.1rem;">${escapeHtml(data.code)}</strong>
+                            <button class="icon-btn" onclick="copyAccessCode('${data.code}')" title="Copiar">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            } catch (err) {
+                console.error("Erro ao carregar códigos:", err);
+                container.innerHTML = '<p style="color: var(--red);">Erro ao carregar códigos do sistema.</p>';
+            }
+        }
+
+        window.copyAccessCode = function(text) {
+            const input = document.createElement('textarea');
+            input.value = text;
+            document.body.appendChild(input);
+            input.select();
+            document.execCommand('copy');
+            document.body.removeChild(input);
+            showNotification('Código copiado para a área de transferência!', 'success');
+        };
 
         // ===== TEAM MANAGEMENT =====
         function openCreateTeamModal() {
@@ -3752,19 +3776,6 @@ body {
             
             resetCreateTeamForm();
             generatePlayerRows();
-            
-            // Mostrar input de código ao CRIAR equipe
-            const accessCodeGroup = document.getElementById('accessCodeGroup');
-            const accessCodeInput = document.getElementById('accessCodeInput');
-            if(accessCodeGroup) accessCodeGroup.style.display = 'block';
-            if(accessCodeInput) {
-                accessCodeInput.value = '';
-                accessCodeInput.required = true;
-            }
-
-            document.querySelector("#createTeamModal .modal-title").innerHTML = 'Criar <span class="text-gold">Equipe</span>';
-            document.querySelector("#createTeamForm button[type='submit']").innerHTML = '<i class="fas fa-check-circle"></i> Criar Equipe';
-            
             openModal('createTeamModal');
         }
 
@@ -3801,10 +3812,23 @@ body {
             e.preventDefault();
             
             if (!currentUser) {
-                showNotification('Faça login para criar/editar equipe!', 'warning');
+                showNotification('Faça login para criar uma equipe!', 'warning');
                 return;
             }
             
+            let validCodeDocId = null;
+            if (!editingTeamId) {
+                const codeInput = document.getElementById('teamAccessCode').value.trim();
+                const qCode = query(collection(db, "accessCodes"), where("code", "==", codeInput));
+                const snapCode = await getDocs(qCode);
+                
+                if (snapCode.empty) {
+                    showNotification("Código de acesso inválido ou já utilizado!", "error");
+                    return;
+                }
+                validCodeDocId = snapCode.docs[0].id;
+            }
+
             const teamName = document.getElementById('teamName').value.trim();
             
             if (teamName.length < 3 || teamName.length > 30) {
@@ -3812,8 +3836,7 @@ body {
                 return;
             }
             
-            // Checa nome apenas na criação (ou se for edição e mudou o nome)
-            if (!editingTeamId && teams.some(t => t.name.toLowerCase() === teamName.toLowerCase())) {
+            if (teams.some(t => t.name.toLowerCase() === teamName.toLowerCase())) {
                 showNotification('Já existe uma equipe com este nome!', 'error');
                 return;
             }
@@ -3837,8 +3860,6 @@ body {
                 }
                 
                 const playerTag = tag.toUpperCase();
-                // Opcional: Aqui daria pra buscar via DB de verdade, mas com limite do frontend
-                // deixamos buscar caso o jogador já tenha conta criada:
                 const q = query(collection(db, "users"), where("tag", "==", playerTag));
                 const snap = await getDocs(q);
                 let uid = null;
@@ -3846,89 +3867,34 @@ body {
 
                 players.push({ uid, number: i + 1, nick, tag: playerTag, trophies, isCaptain: i === 0 });
             }
-
-            // === LÓGICA DE ATUALIZAÇÃO DE EQUIPE EXISTENTE ===
-            if (editingTeamId) {
-                try {
+            
+            try {
+                if (editingTeamId) {
                     await updateDoc(doc(db, "teams", editingTeamId), { name: teamName, logo: uploadedLogoData || "", players: players });
                     closeModal("createTeamModal");
                     editingTeamId = null;
                     showNotification("Equipe atualizada com sucesso! 🎉", "success");
-                } catch (err) {
-                    console.error(err);
-                    showNotification("Erro ao atualizar equipe.", "error");
-                }
-                return;
-            }
-
-            // === LÓGICA DE CRIAÇÃO (COM CÓDIGO DE ACESSO) ===
-            const codeInputVal = document.getElementById('accessCodeInput').value.trim();
-            if (!codeInputVal) {
-                showNotification('O Código de Acesso é obrigatório para criar uma equipe!', 'error');
-                return;
-            }
-
-            try {
-                // 1. Busca inicial para verificar se o código existe antes de iniciar a transação
-                const qCode = query(collection(db, "accessCodes"), where("code", "==", codeInputVal));
-                const codeSnap = await getDocs(qCode);
-                
-                if (codeSnap.empty) {
-                    showNotification('Código de Acesso inválido ou inexistente!', 'error');
                     return;
                 }
 
-                const codeDocRef = codeSnap.docs[0].ref;
-
-                // 2. Transação para garantir segurança contra uso simultâneo
-                await runTransaction(db, async (transaction) => {
-                    const codeDoc = await transaction.get(codeDocRef);
-                    if (!codeDoc.exists()) {
-                        throw new Error("Código não encontrado.");
-                    }
-                    if (codeDoc.data().status !== 'available') {
-                        throw new Error("Este Código de Acesso já foi utilizado!");
-                    }
-
-                    // Prepara dados da nova equipe
-                    const newTeamRef = doc(collection(db, "teams"));
-                    const teamData = {
-                        name: teamName, 
-                        logo: uploadedLogoData || "", 
-                        players: players, 
-                        wins: 0, 
-                        losses: 0, 
-                        elo: 1000, 
-                        winRate: 50, 
-                        captainId: currentUser.id, 
-                        captainName: currentUser.nick, 
-                        createdAt: serverTimestamp()
-                    };
-
-                    // Executa todas as gravações simultaneamente
-                    transaction.set(newTeamRef, teamData);
-                    transaction.update(codeDocRef, {
-                        status: 'used',
-                        usedAt: serverTimestamp(),
-                        usedByTeamId: newTeamRef.id,
-                        usedByTeamName: teamName
-                    });
-                    transaction.update(doc(db, "users", currentUser.id), { teamId: newTeamRef.id });
-
-                    // Usado para retorno visual
-                    window.tempCreatedTeamId = newTeamRef.id;
+                const teamRef = await addDoc(collection(db, "teams"), {
+                    name: teamName, logo: uploadedLogoData || "", players: players, wins: 0, losses: 0, elo: 1000, winRate: 50, captainId: currentUser.id, captainName: currentUser.nick, createdAt: serverTimestamp()
                 });
 
-                currentUser.teamId = window.tempCreatedTeamId;
-                delete window.tempCreatedTeamId;
-                
+                if (validCodeDocId) {
+                    await deleteDoc(doc(db, "accessCodes", validCodeDocId));
+                }
+
+                await updateDoc(doc(db, "users", currentUser.id), { teamId: teamRef.id });
+                currentUser.teamId = teamRef.id;
                 closeModal("createTeamModal");
                 showNotification(`Equipe "${teamName}" criada com sucesso! 🎉`, "success");
                 showSection("teams");
 
             } catch (err) {
                 console.error(err);
-                showNotification(err.message, "error");
+                alert(err.message);
+                showNotification("Erro ao salvar equipe.", "error");
             }
         }
 
@@ -4009,6 +3975,12 @@ body {
             }
 
             editingTeamId = team.id;
+            
+            const accessCodeGroup = document.getElementById('accessCodeGroup');
+            const teamAccessCode = document.getElementById('teamAccessCode');
+            if (accessCodeGroup) accessCodeGroup.style.display = 'none';
+            if (teamAccessCode) teamAccessCode.required = false;
+
             document.getElementById("teamName").value = team.name;
             uploadedLogoData = team.logo || null;
 
@@ -4020,12 +3992,6 @@ body {
                 document.getElementById("uploadPreview").style.display = "none";
                 document.getElementById("uploadPlaceholder").style.display = "block";
             }
-
-            // Esconder o campo do código de acesso na Edição
-            const accessCodeGroup = document.getElementById('accessCodeGroup');
-            const accessCodeInput = document.getElementById('accessCodeInput');
-            if(accessCodeGroup) accessCodeGroup.style.display = 'none';
-            if(accessCodeInput) accessCodeInput.required = false;
 
             generatePlayerRows(team.players);
             document.querySelector("#createTeamModal .modal-title").innerHTML = 'Editar <span class="text-gold">Equipe</span>';
@@ -4117,8 +4083,18 @@ body {
             if (form) form.reset();
             const preview = document.getElementById('uploadPreview');
             const placeholder = document.getElementById('uploadPlaceholder');
+            const accessCodeGroup = document.getElementById('accessCodeGroup');
+            const teamAccessCode = document.getElementById('teamAccessCode');
+            
             if (preview) { preview.classList.remove('show'); preview.src = ''; }
             if (placeholder) placeholder.classList.remove('hidden');
+            
+            if (accessCodeGroup) accessCodeGroup.style.display = 'block';
+            if (teamAccessCode) {
+                teamAccessCode.required = true;
+                teamAccessCode.value = '';
+            }
+
             uploadedLogoData = null;
             document.querySelectorAll('.error-message').forEach(el => el.classList.remove('show'));
             document.querySelectorAll('.form-input.error').forEach(el => el.classList.remove('error'));
@@ -4196,13 +4172,6 @@ body {
         }
 
         function showSection(sectionName) {
-            // Proteção da Rota de Administração
-            if (sectionName === 'admin' && (!currentUser || !currentUser.isAdmin)) {
-                showNotification('Acesso negado. Apenas administradores.', 'error');
-                showSection('home');
-                return;
-            }
-
             const sections = ['home', 'tournaments', 'teams', 'rankings', 'news', 'chat', 'support', 'store', 'admin'];
             
             sections.forEach(s => {
@@ -4232,7 +4201,7 @@ body {
             if (sectionName === 'support') renderSupportContent();
             if (sectionName === 'chat') renderChatContent();
             if (sectionName === 'store') renderStore();
-            if (sectionName === 'admin') renderAccessCodes();
+            if (sectionName === 'admin') loadAccessCodes();
             
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
@@ -4381,169 +4350,6 @@ body {
             }
         }
 
-        // ===== ADMIN PANEL FUNCTIONS =====
-        function listenAccessCodes() {
-            if(!currentUser || !currentUser.isAdmin) return;
-            
-            const q = query(collection(db, "accessCodes"), orderBy("createdAt", "desc"));
-            onSnapshot(q, (snapshot) => {
-                globalAccessCodes = [];
-                snapshot.forEach(doc => {
-                    globalAccessCodes.push({ id: doc.id, ...doc.data() });
-                });
-                
-                // Atualiza tela apenas se estiver na seção admin
-                const adminSection = document.getElementById('adminSection');
-                if(adminSection && adminSection.style.display !== 'none') {
-                    renderAccessCodes();
-                }
-            }, (error) => {
-                console.error("Erro ao carregar códigos de acesso:", error);
-            });
-        }
-
-        function filterAccessCodes() {
-            renderAccessCodes();
-        }
-
-        function renderAccessCodes() {
-            const container = document.getElementById('adminCodesBody');
-            if(!container) return;
-
-            const searchTerm = document.getElementById('adminSearchCode')?.value.toLowerCase() || '';
-            const statusFilter = document.getElementById('adminFilterStatus')?.value || 'all';
-
-            let filteredCodes = globalAccessCodes.filter(c => {
-                const matchesSearch = c.code.toLowerCase().includes(searchTerm) || 
-                                      (c.usedByTeamName && c.usedByTeamName.toLowerCase().includes(searchTerm));
-                const matchesStatus = statusFilter === 'all' || c.status === statusFilter;
-                return matchesSearch && matchesStatus;
-            });
-
-            if (filteredCodes.length === 0) {
-                container.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--white-50); padding: 2rem;">Nenhum código encontrado.</td></tr>`;
-                return;
-            }
-
-            container.innerHTML = filteredCodes.map(c => {
-                const isAvailable = c.status === 'available';
-                const statusBadge = isAvailable 
-                    ? `<span class="ticket-status status-open">Disponível</span>`
-                    : `<span class="ticket-status status-closed">Utilizado</span>`;
-                
-                const createdDate = c.createdAt ? new Date(c.createdAt.toDate ? c.createdAt.toDate() : c.createdAt).toLocaleString('pt-BR') : 'N/A';
-                const usedDate = c.usedAt ? new Date(c.usedAt.toDate ? c.usedAt.toDate() : c.usedAt).toLocaleString('pt-BR') : '-';
-                
-                return `
-                    <tr>
-                        <td><strong style="color: var(--gold); letter-spacing: 1px;">${escapeHtml(c.code)}</strong></td>
-                        <td>${statusBadge}</td>
-                        <td style="font-size: 0.85rem; color: var(--white-70);">${createdDate}</td>
-                        <td style="font-size: 0.85rem; color: var(--white-70);">${usedDate}</td>
-                        <td>${c.usedByTeamName ? escapeHtml(c.usedByTeamName) : '<span style="color: var(--white-30);">-</span>'}</td>
-                        <td>
-                            <div style="display: flex; gap: 0.5rem;">
-                                <button class="btn btn-outline btn-sm" onclick="copyAccessCode('${c.code}')" title="Copiar">
-                                    <i class="fas fa-copy"></i>
-                                </button>
-                                ${isAvailable ? `
-                                    <button class="btn btn-danger btn-sm" onclick="deleteAccessCode('${c.id}')" title="Excluir">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                ` : ''}
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-        }
-
-        async function generateAccessCode(isCustom) {
-            if(!currentUser || !currentUser.isAdmin) return;
-
-            let codesToGenerate = [];
-
-            if (isCustom) {
-                const customCode = document.getElementById('adminCustomCode').value.trim().toUpperCase();
-                if (!customCode) {
-                    showNotification('Digite um código personalizado!', 'error');
-                    return;
-                }
-                if (globalAccessCodes.some(c => c.code === customCode)) {
-                    showNotification('Este código já existe!', 'error');
-                    return;
-                }
-                codesToGenerate.push(customCode);
-                document.getElementById('adminCustomCode').value = '';
-            } else {
-                let amount = parseInt(document.getElementById('adminCodeAmount').value) || 1;
-                if (amount < 1) amount = 1;
-                if (amount > 50) amount = 50;
-
-                for (let i = 0; i < amount; i++) {
-                    let newCode;
-                    let isUnique = false;
-                    while (!isUnique) {
-                        const randomString = Math.random().toString(36).substring(2, 8).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase();
-                        newCode = 'NB-' + randomString;
-                        isUnique = !globalAccessCodes.some(c => c.code === newCode) && !codesToGenerate.includes(newCode);
-                    }
-                    codesToGenerate.push(newCode);
-                }
-            }
-
-            try {
-                for (const code of codesToGenerate) {
-                    await addDoc(collection(db, "accessCodes"), {
-                        code: code,
-                        status: 'available',
-                        createdAt: serverTimestamp(),
-                        createdBy: currentUser.id,
-                        usedAt: null,
-                        usedByTeamId: null,
-                        usedByTeamName: null
-                    });
-                }
-                showNotification(`${codesToGenerate.length} código(s) gerado(s) com sucesso!`, 'success');
-            } catch (error) {
-                console.error("Erro ao gerar código:", error);
-                showNotification('Erro ao gerar código.', 'error');
-            }
-        }
-
-        async function deleteAccessCode(docId) {
-            if(!currentUser || !currentUser.isAdmin) return;
-            
-            const codeData = globalAccessCodes.find(c => c.id === docId);
-            if(!codeData) return;
-            
-            if(codeData.status !== 'available') {
-                showNotification('Apenas códigos disponíveis podem ser excluídos.', 'error');
-                return;
-            }
-
-            if(confirm('Tem certeza que deseja excluir este código?')) {
-                try {
-                    await deleteDoc(doc(db, "accessCodes", docId));
-                    showNotification('Código excluído!', 'success');
-                } catch (error) {
-                    showNotification('Erro ao excluir código.', 'error');
-                }
-            }
-        }
-
-        function copyAccessCode(code) {
-            // Usa textarea para compatibilidade ampla
-            const tempInput = document.createElement("input");
-            tempInput.value = code;
-            document.body.appendChild(tempInput);
-            tempInput.select();
-            document.execCommand("copy");
-            document.body.removeChild(tempInput);
-            showNotification('Código copiado!', 'success');
-        }
-
-
         // ===== INIT =====
         function init() {
             // Aplicar o tema da sessão atual ou armazenado localmente
@@ -4676,8 +4482,7 @@ body {
           onSnapshot,
           serverTimestamp, 
           orderBy,
-          limit,
-          runTransaction
+          limit
         } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
         import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-storage.js";
@@ -4718,7 +4523,6 @@ body {
         window.updateDoc = updateDoc;
         window.onSnapshot = onSnapshot;
         window.serverTimestamp = serverTimestamp;
-        window.runTransaction = runTransaction;
 
         async function loadTickets() {
             const q = query(collection(db, "supportTickets"), orderBy("createdAt", "desc"));
