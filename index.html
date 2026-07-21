@@ -752,17 +752,55 @@ body {
         }
 
         .modal {
-            background: var(--gray-dark);
-            border: 1px solid var(--gold-20);
-            border-radius: 1.5rem;
-            padding: 2.5rem;
-            max-width: 600px;
-            width: 90%;
-            max-height: 90vh;
-            overflow-y: auto;
-            overflow-x: hidden;
-            animation: fadeIn 0.3s ease-out;
-        }
+    background: var(--gray-dark);
+    border: 1px solid var(--gold-20);
+    border-radius: 1.5rem;
+    padding: 1.5rem;
+    width: min(92vw, 420px);
+    max-height: 90vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    box-sizing: border-box;
+    animation: fadeIn 0.3s ease-out;
+}
+
+@media (max-width: 480px) {
+    .header-container {
+        padding: 0 .6rem;
+        gap: .5rem;
+    }
+
+    .logo {
+        font-size: 1.35rem;
+        flex-shrink: 1;
+        min-width: 0;
+    }
+
+    .header-actions {
+        gap: .4rem;
+        flex-shrink: 0;
+    }
+
+    .header-actions .btn {
+        padding: .55rem .9rem;
+        font-size: .85rem;
+    }
+
+    .modal {
+        width: calc(100vw - 20px);
+        max-width: 400px;
+        padding: 1.2rem;
+        box-sizing: border-box;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .cards-grid {
+        grid-template-columns: 1fr;
+    }
+}
 
         .modal-lg {
             max-width: 700px;
@@ -4642,4 +4680,4 @@ body {
 </div>
 
 </body>
-</html>
+    </html>
