@@ -2024,12 +2024,21 @@ body {
             <div class="glass" style="padding: 2rem; border-radius: 1rem; margin-top: 3rem;">
                 <h3 style="color: var(--gold); margin-bottom: 1rem;"><i class="fas fa-gift"></i> Resgatar Código</h3>
                 <p style="color: var(--white-50); margin-bottom: 1rem; font-size: 0.9rem;">Insira seu código de recompensa abaixo para receber moedas em sua conta.</p>
-                <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-                    <input type="text" class="form-input" id="rewardCodeInput" placeholder="Ex: RW-XXXX-XXXX" style="flex: 1; min-width: 200px; text-transform: uppercase;">
-                    <button class="btn btn-primary" onclick="redeemRewardCode()">
-                        <i class="fas fa-check"></i> Resgatar
-                    </button>
-                </div>
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+    <input
+        type="text"
+        class="form-input"
+        id="rewardCodeInput"
+        placeholder="Ex: RW-XXXX-XXXX"
+        style="width: 100%; text-transform: uppercase;"
+    >
+
+    <div style="display: flex; justify-content: center;">
+        <button class="btn btn-primary" onclick="redeemRewardCode()">
+            <i class="fas fa-check"></i> Resgatar
+        </button>
+    </div>
+</div>
             </div>
         </section>
 
