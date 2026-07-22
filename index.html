@@ -2007,12 +2007,29 @@ body {
 
         <!-- Store Section -->
         <section id="storeSection" style="display: none;">
-            <h2 class="section-title"><i class="fas fa-shopping-cart"></i> Loja <span style="font-size: 0.5em; background: var(--gold-20); padding: 0.2rem 0.5rem; border-radius: 1rem; color: var(--gold); vertical-align: middle; margin-left: 0.5rem;">Beta</span></h2>
-            <p style="color: var(--white-70); margin-bottom: 2rem;">Personalize a cor principal da plataforma. Aproveite esta funcionalidade gratuitamente durante a fase de testes!</p>
+            <h2 class="section-title"><i class="fas fa-shopping-cart"></i> Loja</h2>
+            <p style="color: var(--white-70); margin-bottom: 2rem;">Personalize a cor principal da plataforma desbloqueando novos temas com suas moedas.</p>
             
-            <h3 style="color: var(--gold); margin-bottom: 1rem;"><i class="fas fa-palette"></i> Temas de Cor</h3>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
+                <h3 style="color: var(--gold);"><i class="fas fa-palette"></i> Temas de Cor</h3>
+                <div style="background: var(--white-10); padding: 0.6rem 1.2rem; border-radius: 1rem; font-weight: bold; color: var(--gold); display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-coins" style="font-size: 1.2rem;"></i> Saldo: <span id="storeCoinBalance">0</span> Moedas
+                </div>
+            </div>
+            
             <div class="cards-grid" id="themeGrid">
                 <!-- Preenchido dinamicamente pelo JS -->
+            </div>
+
+            <div class="glass" style="padding: 2rem; border-radius: 1rem; margin-top: 3rem;">
+                <h3 style="color: var(--gold); margin-bottom: 1rem;"><i class="fas fa-gift"></i> Resgatar Código</h3>
+                <p style="color: var(--white-50); margin-bottom: 1rem; font-size: 0.9rem;">Insira seu código de recompensa abaixo para receber moedas em sua conta.</p>
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                    <input type="text" class="form-input" id="rewardCodeInput" placeholder="Ex: RW-XXXX-XXXX" style="flex: 1; min-width: 200px; text-transform: uppercase;">
+                    <button class="btn btn-primary" onclick="redeemRewardCode()">
+                        <i class="fas fa-check"></i> Resgatar
+                    </button>
+                </div>
             </div>
         </section>
 
@@ -2032,6 +2049,25 @@ body {
                 </div>
                 
                 <div id="accessCodesList" style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));">
+                    <!-- Codes will be injected here -->
+                </div>
+            </div>
+
+            <div class="glass" style="padding: 2rem; border-radius: 1rem; margin-top: 2rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;">
+                    <div>
+                        <h3 style="color: var(--gold);"><i class="fas fa-coins"></i> Códigos de Recompensa</h3>
+                        <p style="color: var(--white-50); font-size: 0.9rem; margin-top: 0.5rem;">Gere códigos que concedem moedas aos usuários.</p>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                        <input type="number" class="form-input" id="rewardCoinAmount" placeholder="Qtd." value="500" style="width: 100px;" min="1">
+                        <button class="btn btn-primary" onclick="generateRewardCode()">
+                            <i class="fas fa-plus"></i> Gerar Código
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="rewardCodesList" style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));">
                     <!-- Codes will be injected here -->
                 </div>
             </div>
@@ -2114,7 +2150,7 @@ body {
                     closeModal('loginModal');
                 })
                 .catch(function(err) {
-                    if (err.code === 'auth/invalid-credential') {
+                    if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password') {
                         showNotification('E-mail ou senha incorretos!', 'error');
                     } else if (err.code === 'auth/user-not-found') {
                         showNotification('E-mail não cadastrado!', 'error');
@@ -2343,6 +2379,9 @@ body {
             pink: { name: 'Rosa', main: '#ec4899', dark: '#db2777', light: '#f472b6', t10: 'rgba(236, 72, 153, 0.1)', t20: 'rgba(236, 72, 153, 0.2)', t30: 'rgba(236, 72, 153, 0.3)', t50: 'rgba(236, 72, 153, 0.5)' }
         };
 
+        // Adicionando preços aos temas (Dourado é Grátis)
+        Object.keys(themesData).forEach(key => themesData[key].price = key === 'gold' ? 0 : 500);
+
         function applyTheme(themeKey) {
             const theme = themesData[themeKey] || themesData.gold;
             const root = document.documentElement;
@@ -2374,6 +2413,42 @@ body {
             }
             
             renderStore(); // Atualiza a interface da loja para destacar a nova cor ativa
+        }
+
+        async function buyTheme(themeKey, price) {
+            if (!currentUser) {
+                showNotification('Faça login para comprar temas.', 'warning');
+                openModal('loginModal');
+                return;
+            }
+            
+            if (currentUser.coins < price) {
+                showNotification('Moedas insuficientes!', 'error');
+                return;
+            }
+            
+            // Deduzir moedas e adicionar tema
+            currentUser.coins -= price;
+            if (!currentUser.unlockedThemes) currentUser.unlockedThemes = [];
+            currentUser.unlockedThemes.push(themeKey);
+            
+            try {
+                await updateDoc(doc(db, "users", currentUser.id), {
+                    coins: currentUser.coins,
+                    unlockedThemes: currentUser.unlockedThemes
+                });
+                
+                saveCurrentUser();
+                showNotification(`Tema ${themesData[themeKey].name} comprado com sucesso! 🎉`, 'success');
+                updateUI();
+                changeTheme(themeKey);
+            } catch(e) {
+                console.error('Erro ao comprar tema:', e);
+                showNotification('Erro ao processar a compra.', 'error');
+                // Reverter alterações locais em caso de falha
+                currentUser.coins += price;
+                currentUser.unlockedThemes.pop();
+            }
         }
 
         // ===== RANKING DATA =====
@@ -2477,6 +2552,26 @@ body {
                 
                 if (userDoc.exists()) {
                     const data = userDoc.data();
+                    
+                    // Lógica para Brinde de Lançamento (executada apenas uma vez)
+                    let unlockedThemes = data.unlockedThemes || ['gold'];
+                    let launchGiftClaimed = data.launchGiftClaimed || false;
+                    let coins = data.coins || 0;
+                    
+                    if (!launchGiftClaimed) {
+                        if (data.theme && !unlockedThemes.includes(data.theme)) {
+                            unlockedThemes.push(data.theme);
+                        }
+                        launchGiftClaimed = true;
+                        
+                        try {
+                            updateDoc(doc(db, "users", cred.user.uid), {
+                                unlockedThemes: unlockedThemes,
+                                launchGiftClaimed: true
+                            });
+                        } catch(err) { console.error('Erro ao salvar brinde:', err); }
+                    }
+
                     currentUser = {
                         id: cred.user.uid,
                         name: data.name,
@@ -2490,7 +2585,10 @@ body {
                         bio: data.bio || '',
                         tournamentsPlayed: data.tournamentsPlayed || 0,
                         tournamentsWon: data.tournamentsWon || 0,
-                        theme: data.theme || 'gold'
+                        theme: data.theme || 'gold',
+                        coins: coins,
+                        unlockedThemes: unlockedThemes,
+                        launchGiftClaimed: launchGiftClaimed
                     };
                 } else {
                     currentUser = {
@@ -2506,7 +2604,10 @@ body {
                         bio: '',
                         tournamentsPlayed: 0,
                         tournamentsWon: 0,
-                        theme: 'gold'
+                        theme: 'gold',
+                        coins: 0,
+                        unlockedThemes: ['gold'],
+                        launchGiftClaimed: true
                     };
                 }
                 
@@ -2569,6 +2670,9 @@ body {
                     email,
                     teamId: null,
                     theme: 'gold',
+                    coins: 0,
+                    unlockedThemes: ['gold'],
+                    launchGiftClaimed: true,
                     createdAt: new Date().toISOString()
                 });
 
@@ -2579,7 +2683,10 @@ body {
                     tag,
                     email,
                     teamId: null,
-                    theme: 'gold'
+                    theme: 'gold',
+                    coins: 0,
+                    unlockedThemes: ['gold'],
+                    launchGiftClaimed: true
                 };
 
                 sessionStorage.setItem('novaBrawlCurrentUser', JSON.stringify(currentUser));
@@ -2643,6 +2750,9 @@ body {
             
             if (currentUser) {
                 headerActions.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 0.5rem; background: var(--white-10); padding: 0.4rem 0.8rem; border-radius: 1rem; color: var(--gold); font-weight: bold; margin-right: 0.5rem;" title="Suas Moedas">
+                        <i class="fas fa-coins"></i> <span id="headerCoinBalance">${currentUser.coins || 0}</span>
+                    </div>
                     <div style="position: relative;">
                         <button class="icon-btn" onclick="showNotification('Você tem notificações', 'info')">
                             <i class="fas fa-bell"></i>
@@ -3648,29 +3758,91 @@ body {
 
         function renderStore() {
             const container = document.getElementById('themeGrid');
+            const balanceSpan = document.getElementById('storeCoinBalance');
+            if (balanceSpan) balanceSpan.textContent = currentUser?.coins || 0;
             if (!container) return;
             
             const currentThemeKey = currentUser?.theme || 'gold';
+            const unlocked = currentUser?.unlockedThemes || ['gold'];
             
             container.innerHTML = Object.keys(themesData).map(key => {
                 const t = themesData[key];
                 const isActive = currentThemeKey === key;
+                const isUnlocked = unlocked.includes(key);
+                const priceDisplay = key === 'gold' ? 'Grátis' : `${t.price} Moedas`;
+                
+                let actionButton = '';
+                if (isActive) {
+                    actionButton = `<button class="btn btn-sm mt-4" style="background: ${t.main}; color: #fff; width: 100%; border: none;"><i class="fas fa-check"></i> Tema Ativo</button>`;
+                } else if (isUnlocked) {
+                    actionButton = `<button class="btn btn-outline btn-sm mt-4" style="border-color: ${t.main}; color: ${t.main}; width: 100%;" onclick="changeTheme('${key}')">Equipar</button>`;
+                } else {
+                    actionButton = `<button class="btn btn-primary btn-sm mt-4" style="background: ${t.main}; color: #fff; width: 100%; border: none;" onclick="buyTheme('${key}', ${t.price})"><i class="fas fa-shopping-cart"></i> Comprar (${t.price})</button>`;
+                }
+
                 return `
-                    <div class="card glass-hover" style="text-align: center; border: 2px solid ${isActive ? t.main : 'var(--white-10)'}; cursor: pointer;" onclick="changeTheme('${key}')">
+                    <div class="card glass-hover" style="text-align: center; border: 2px solid ${isActive ? t.main : 'var(--white-10)'};">
                         <div style="height: 120px; background: linear-gradient(135deg, ${t.main}, ${t.dark}); display: flex; align-items: center; justify-content: center; font-size: 3rem; color: #fff;">
-                            ${isActive ? '<i class="fas fa-check-circle"></i>' : '<i class="fas fa-paint-brush"></i>'}
+                            ${isActive ? '<i class="fas fa-check-circle"></i>' : (isUnlocked ? '<i class="fas fa-paint-brush"></i>' : '<i class="fas fa-lock"></i>')}
                         </div>
                         <div class="card-body">
                             <h3 style="color: ${t.main}; font-size: 1.2rem;">${t.name}</h3>
-                            <p style="color: var(--white-50); font-size: 0.85rem; margin-top: 0.5rem;">Cor principal da plataforma</p>
-                            ${isActive 
-                                ? `<button class="btn btn-sm mt-4" style="background: ${t.main}; color: #fff; width: 100%; border: none;"><i class="fas fa-check"></i> Tema Ativo</button>` 
-                                : `<button class="btn btn-outline btn-sm mt-4" style="border-color: ${t.main}; color: ${t.main}; width: 100%;">Aplicar</button>`
-                            }
+                            <p style="color: var(--white-50); font-size: 0.85rem; margin-top: 0.5rem;">${isUnlocked ? 'Desbloqueado' : priceDisplay}</p>
+                            ${actionButton}
                         </div>
                     </div>
                 `;
             }).join('');
+        }
+
+        async function redeemRewardCode() {
+            if (!currentUser) {
+                showNotification('Faça login para resgatar códigos!', 'warning');
+                openModal('loginModal');
+                return;
+            }
+
+            const codeInput = document.getElementById('rewardCodeInput');
+            const code = codeInput.value.trim().toUpperCase();
+
+            if (!code) {
+                showNotification('Insira um código válido.', 'error');
+                return;
+            }
+
+            try {
+                const q = query(collection(db, "rewardCodes"), where("code", "==", code));
+                const snapshot = await getDocs(q);
+
+                if (snapshot.empty) {
+                    showNotification('Código inválido ou já resgatado.', 'error');
+                    return;
+                }
+
+                const codeDoc = snapshot.docs[0];
+                const data = codeDoc.data();
+                const coinsToAdd = data.coins;
+
+                if (!currentUser.coins) currentUser.coins = 0;
+                currentUser.coins += coinsToAdd;
+
+                await updateDoc(doc(db, "users", currentUser.id), {
+                    coins: currentUser.coins
+                });
+
+                await deleteDoc(doc(db, "rewardCodes", codeDoc.id));
+
+                saveCurrentUser();
+                codeInput.value = '';
+                
+                showNotification(`Resgate com sucesso! Você ganhou ${coinsToAdd} moedas 🎉`, 'success');
+                updateUI();
+                renderStore();
+                
+            } catch(err) {
+                console.error("Erro ao resgatar código:", err);
+                showNotification('Erro ao processar o código.', 'error');
+            }
         }
 
         function renderTeamsGrid() {
@@ -3725,7 +3897,7 @@ body {
             }).join('');
         }
 
-        // ===== ADMIN / CÓDIGOS DE ACESSO =====
+        // ===== ADMIN / CÓDIGOS DE ACESSO E RECOMPENSA =====
         async function generateAccessCode() {
             if (!currentUser || !currentUser.isAdmin) return;
             
@@ -3782,6 +3954,77 @@ body {
             } catch (err) {
                 console.error("Erro ao carregar códigos:", err);
                 container.innerHTML = '<p style="color: var(--red);">Erro ao carregar códigos do sistema.</p>';
+            }
+        }
+
+        async function generateRewardCode() {
+            if (!currentUser || !currentUser.isAdmin) return;
+            
+            const amountInput = document.getElementById('rewardCoinAmount');
+            const amount = parseInt(amountInput.value);
+            
+            if (!amount || amount <= 0) {
+                showNotification('Insira uma quantidade válida de moedas.', 'error');
+                return;
+            }
+
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            const part1 = Array.from({length: 4}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+            const part2 = Array.from({length: 4}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+            const code = `RW-${part1}-${part2}`;
+            
+            try {
+                await addDoc(collection(db, "rewardCodes"), {
+                    code: code,
+                    coins: amount,
+                    createdAt: new Date().toISOString()
+                });
+                showNotification(`Código de ${amount} moedas gerado com sucesso!`, 'success');
+                loadRewardCodes();
+            } catch (err) {
+                console.error("Erro ao gerar código de recompensa:", err);
+                showNotification('Erro ao gerar código.', 'error');
+            }
+        }
+
+        async function loadRewardCodes() {
+            if (!currentUser || !currentUser.isAdmin) return;
+            const container = document.getElementById('rewardCodesList');
+            if (!container) return;
+            
+            try {
+                const q = query(collection(db, "rewardCodes"));
+                const snapshot = await getDocs(q);
+                
+                if (snapshot.empty) {
+                    container.innerHTML = `
+                        <div class="empty-state" style="grid-column: 1 / -1; padding: 1.5rem;">
+                            <i class="fas fa-gift"></i>
+                            <h4 style="margin-top: 0.5rem;">Nenhum código gerado</h4>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                let html = '';
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    html += `
+                        <div class="glass-hover" style="padding: 1rem; border-radius: 0.75rem; border: 1px solid var(--white-10); display: flex; align-items: center; justify-content: space-between;">
+                            <div>
+                                <strong style="color: var(--gold); letter-spacing: 1px; font-size: 1.1rem; display: block;">${escapeHtml(data.code)}</strong>
+                                <span style="color: var(--white-50); font-size: 0.8rem;"><i class="fas fa-coins"></i> ${data.coins} moedas</span>
+                            </div>
+                            <button class="icon-btn" onclick="copyAccessCode('${data.code}')" title="Copiar">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            } catch (err) {
+                console.error("Erro ao carregar códigos de recompensa:", err);
+                container.innerHTML = '<p style="color: var(--red);">Erro ao carregar códigos.</p>';
             }
         }
 
@@ -4239,7 +4482,10 @@ body {
             if (sectionName === 'support') renderSupportContent();
             if (sectionName === 'chat') renderChatContent();
             if (sectionName === 'store') renderStore();
-            if (sectionName === 'admin') loadAccessCodes();
+            if (sectionName === 'admin') {
+                loadAccessCodes();
+                loadRewardCodes();
+            }
             
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
@@ -4414,6 +4660,25 @@ body {
                             const userDoc = await getDoc(doc(db, "users", user.uid));
                             if (userDoc.exists()) {
                                 const data = userDoc.data();
+                                
+                                // Lógica de Brinde de Lançamento para Load Inicial via BD
+                                let unlockedThemes = data.unlockedThemes || ['gold'];
+                                let launchGiftClaimed = data.launchGiftClaimed || false;
+                                let coins = data.coins || 0;
+                                
+                                if (!launchGiftClaimed) {
+                                    if (data.theme && !unlockedThemes.includes(data.theme)) {
+                                        unlockedThemes.push(data.theme);
+                                    }
+                                    launchGiftClaimed = true;
+                                    try {
+                                        updateDoc(doc(db, "users", user.uid), {
+                                            unlockedThemes: unlockedThemes,
+                                            launchGiftClaimed: true
+                                        });
+                                    } catch(e) { console.error('Erro ao salvar brinde:', e); }
+                                }
+                                
                                 currentUser = {
                                     id: user.uid,
                                     name: data.name,
@@ -4427,7 +4692,10 @@ body {
                                     bio: data.bio || '',
                                     tournamentsPlayed: data.tournamentsPlayed || 0,
                                     tournamentsWon: data.tournamentsWon || 0,
-                                    theme: data.theme || 'gold'
+                                    theme: data.theme || 'gold',
+                                    coins: coins,
+                                    unlockedThemes: unlockedThemes,
+                                    launchGiftClaimed: launchGiftClaimed
                                 };
                                 sessionStorage.setItem('novaBrawlCurrentUser', JSON.stringify(currentUser));
                                 applyTheme(currentUser.theme);
@@ -4680,4 +4948,4 @@ body {
 </div>
 
 </body>
-                        </html>
+</html>
