@@ -857,33 +857,10 @@ body {
     appearance: none;
     -webkit-appearance: none;
     -moz-appearance: none;
-
-    background-image: none;
     padding-right: 2.8rem;
 }
 
-.select-wrapper {
-    position: relative;
-}
-
-.select-wrapper::after {
-    content: "";
-    position: absolute;
-    top: 50%;
-    right: 1rem;
-
-    width: 8px;
-    height: 8px;
-
-    border-right: 2px solid var(--primary);
-    border-bottom: 2px solid var(--primary);
-
-    transform: translateY(-60%) rotate(45deg);
-
-    pointer-events: none;
-}
-
-        .form-select option {
+       .form-select option {
             background: var(--gray-dark);
             color: var(--white);
         }
@@ -2435,6 +2412,17 @@ body {
             root.style.setProperty('--gold-20', theme.t20);
             root.style.setProperty('--gold-30', theme.t30);
             root.style.setProperty('--gold-50', theme.t50);
+            const arrow = encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="${theme.main}" viewBox="0 0 16 16">
+<path d="M8 11L3 6h10z"/>
+</svg>`);
+
+document.querySelectorAll('.form-select').forEach(select => {
+    select.style.backgroundImage = `url("data:image/svg+xml,${arrow}")`;
+    select.style.backgroundRepeat = "no-repeat";
+    select.style.backgroundPosition = "right 1rem center";
+    select.style.backgroundSize = "12px";
+})
         }
 
         async function changeTheme(themeKey) {
@@ -3060,11 +3048,11 @@ body {
                 '<div class="profile-section-title"><i class="fas fa-user-edit"></i> Informações do Perfil</div>' +
                 '<div class="form-group"><label class="form-label"><i class="fas fa-gamepad"></i> Nick do Jogador</label><input type="text" class="form-input" id="editNick" value="' + escapeHtml(currentUser.nick || '') + '" placeholder="Seu nick"></div>' +
                 '<div class="form-group"><label class="form-label"><i class="fas fa-hashtag"></i> Tag do Jogador</label><input type="text" class="form-input" id="editTag" value="' + escapeHtml(currentUser.tag || '') + '" placeholder="#123ABC" pattern="#[A-Za-z0-9]+"></div>' +
-                '<div class="form-group"><label class="form-label"><i class="fas fa-circle"></i> Status</label><div class="select-wrapper"><select class="form-select" id="editStatus">' +
+               '<div class="form-group"><label class="form-label"><i class="fas fa-circle"></i> Status</label><select class="form-select" id="editStatus">' +
                 '<option value="online" ' + ((currentUser.status || 'online') === 'online' ? 'selected' : '') + '>🟢 Online</option>' +
                 '<option value="away" ' + (currentUser.status === 'away' ? 'selected' : '') + '>🟡 Ausente</option>' +
                 '<option value="busy" ' + (currentUser.status === 'busy' ? 'selected' : '') + '>🔴 Ocupado</option>' +
-   '</select></div></div>' +
+   '</select></div>' +
                 '<div class="form-group"><label class="form-label"><i class="fas fa-quote-right"></i> Bio</label><textarea class="form-textarea bio-textarea" id="editBio" placeholder="Conte um pouco sobre você..." maxlength="200">' + escapeHtml(currentUser.bio || '') + '</textarea><small style="color: var(--white-30);">' + bioLength + '/200 caracteres</small></div>' +
                 '<div class="profile-section-title"><i class="fas fa-users"></i> Equipe</div>' +
                 (userTeam ? 
