@@ -2007,14 +2007,33 @@ body {
 
         <!-- Store Section -->
         <section id="storeSection" style="display: none;">
-            <h2 class="section-title"><i class="fas fa-shopping-cart"></i> Loja</h2>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; width: 100%;">
+    
+    <h2 style="margin: 0; display: flex; align-items: center; gap: 0.75rem;">
+        <i class="fas fa-shopping-cart" style="color: var(--primary);"></i>
+        Loja
+    </h2>
+
+    <div style="
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        background: var(--white-10);
+        padding: .45rem .9rem;
+        border-radius: 14px;
+        color: var(--primary);
+        font-weight: bold;
+        white-space: nowrap;
+    ">
+        <i class="fas fa-coins"></i>
+        <span id="shopCoinBalance">${currentUser.coins || 0}</span>
+    </div>
+
+</div>
             <p style="color: var(--white-70); margin-bottom: 2rem;">Personalize a cor principal da plataforma desbloqueando novos temas com suas moedas.</p>
             
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
                 <h3 style="color: var(--gold);"><i class="fas fa-palette"></i> Temas de Cor</h3>
-                <div style="background: var(--white-10); padding: 0.6rem 1.2rem; border-radius: 1rem; font-weight: bold; color: var(--gold); display: flex; align-items: center; gap: 0.5rem;">
-                    <i class="fas fa-coins" style="font-size: 1.2rem;"></i> Saldo: <span id="storeCoinBalance">0</span> Moedas
-                </div>
             </div>
             
             <div class="cards-grid" id="themeGrid">
@@ -2022,12 +2041,12 @@ body {
             </div>
 
             <div class="glass" style="padding: 2rem; border-radius: 1rem; margin-top: 3rem;">
-                <h3 style="color: var(--gold); margin-bottom: 1rem; text-align: center; width: 100%;">
+<h3 style="color: var(--gold); margin-bottom: 1rem; text-align: center; width: 100%;">
     <i class="fas fa-gift"></i> Resgatar Código
-                </h3>
-                <p style="color: var(--white-50); margin-bottom: 1rem; font-size: 0.9rem; text-align: center; width: 100%;">
+</h3>
+<p style="color: var(--white-50); margin-bottom: 1rem; font-size: 0.9rem; text-align: center; width: 100%;">
     Insira seu código de recompensa abaixo para receber moedas em sua conta.
-                </p>
+</p>
                 <div style="display: flex; flex-direction: column; gap: 1rem;">
     <input
         type="text"
