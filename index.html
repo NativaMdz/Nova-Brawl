@@ -2018,7 +2018,9 @@ body {
     <span id="storeCoinBalance" style="font-weight: bold; color: var(--gold);">0</span>
 </div>
 </div>
-            <p style="color: var(--white-70); margin-bottom: 2rem;">Personalize a cor principal da plataforma desbloqueando novos temas com suas moedas.</p>
+<p style="color: var(--white-50); margin-top: -8px; margin-bottom: 1rem;">
+    Personalize a cor principal da plataforma desbloqueando novos temas com suas moedas.
+</p>
             
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
                 <h3 style="color: var(--gold);"><i class="fas fa-palette"></i> Temas de Cor</h3>
@@ -3272,24 +3274,57 @@ document.querySelectorAll('.form-select').forEach(select => {
             renderTournaments();
         }
 
-        // ===== SUPPORT SYSTEM =====
-        async function openNewTicket() {
+        // ===== SUPPORT SYSTEM (ATUALIZADO COM MODAL) =====
+        function openNewTicket() {
             if (!currentUser) {
                 showNotification('Faça login para abrir um ticket de suporte!', 'warning');
                 openModal('loginModal');
                 return;
             }
             
-            const category = prompt('Categoria do problema:\n1 - Problema Técnico\n2 - Dúvida sobre Campeonatos\n3 - Denúncia\n4 - Sugestão\n5 - Outro\n\nDigite o número:');
-            const categories = ['', 'Problema Técnico', 'Dúvida sobre Campeonatos', 'Denúncia', 'Sugestão', 'Outro'];
-            const categoryName = categories[parseInt(category)] || 'Outro';
+            // Resetar formulário
+            document.getElementById('ticketCategory').value = 'Problema Técnico';
+            document.getElementById('ticketSubject').value = '';
+            document.getElementById('ticketDescription').value = '';
             
-            const subject = prompt('Assunto do ticket:');
-            if (!subject) return;
+            goToTicketStep(1);
+            openModal('newTicketModal');
+        }
+
+        function goToTicketStep(step) {
+            // Validações antes de avançar
+            if (step === 2) {
+                // Passo 1 não tem validação obrigatória extra
+            } else if (step === 3) {
+                const subject = document.getElementById('ticketSubject').value.trim();
+                if (!subject) {
+                    showNotification('Por favor, informe o assunto do ticket.', 'warning');
+                    return;
+                }
+            }
+
+            document.getElementById('ticketStep1').style.display = 'none';
+            document.getElementById('ticketStep2').style.display = 'none';
+            document.getElementById('ticketStep3').style.display = 'none';
             
-            const description = prompt('Descreva seu problema em detalhes:');
-            if (!description) return;
-            
+            document.getElementById('ticketStep' + step).style.display = 'block';
+
+            const subtitle = document.getElementById('newTicketSubtitle');
+            if (step === 1) subtitle.textContent = 'Selecione a categoria do problema (Etapa 1/3)';
+            if (step === 2) subtitle.textContent = 'Informe o assunto do ticket (Etapa 2/3)';
+            if (step === 3) subtitle.textContent = 'Descreva seu problema (Etapa 3/3)';
+        }
+
+        async function submitNewTicket() {
+            const categoryName = document.getElementById('ticketCategory').value;
+            const subject = document.getElementById('ticketSubject').value.trim();
+            const description = document.getElementById('ticketDescription').value.trim();
+
+            if (!description) {
+                showNotification('Por favor, descreva seu problema detalhadamente.', 'warning');
+                return;
+            }
+
             const ticket = {
                 id: 'TKT-' + Date.now().toString().slice(-6),
                 userId: currentUser.id,
@@ -3313,10 +3348,19 @@ document.querySelectorAll('.form-select').forEach(select => {
                 ]
             };
             
-            await saveTicket(ticket);
-            await loadTickets();
-            showNotification(`Ticket #${ticket.id} criado com sucesso!`, 'success');
-            await renderSupportContent();
+            try {
+                await saveTicket(ticket);
+                await loadTickets();
+                showNotification(`Ticket #${ticket.id} criado com sucesso!`, 'success');
+                closeModal('newTicketModal');
+                
+                if (typeof renderSupportContent === "function") {
+                    renderSupportContent();
+                }
+            } catch (error) {
+                console.error("Erro ao salvar ticket:", error);
+                showNotification('Erro ao criar ticket.', 'error');
+            }
         }
 
         function saveTickets() {
@@ -4975,5 +5019,66 @@ document.querySelectorAll('.form-select').forEach(select => {
     </div>
 </div>
 
+<!-- NOVO MODAL PARA ABRIR TICKET DE SUPORTE -->
+<div class="modal-overlay" id="newTicketModal">
+    <div class="modal modal-lg">
+        <div class="modal-header">
+            <h2 class="modal-title">Abrir <span class="text-gold">Ticket</span></h2>
+            <p class="modal-subtitle" id="newTicketSubtitle">Selecione a categoria do problema (Etapa 1/3)</p>
+        </div>
+
+        <div id="ticketStep1">
+            <div class="form-group">
+                <label class="form-label">Categoria do Problema</label>
+                <select class="form-select" id="ticketCategory">
+                    <option value="Problema Técnico">Problema Técnico</option>
+                    <option value="Dúvida sobre Campeonatos">Dúvida sobre Campeonatos</option>
+                    <option value="Denúncia">Denúncia</option>
+                    <option value="Sugestão">Sugestão</option>
+                    <option value="Outro">Outro</option>
+                </select>
+            </div>
+            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <button class="btn btn-outline" style="flex: 1; justify-content: center;" onclick="closeModal('newTicketModal')">
+                    Cancelar
+                </button>
+                <button class="btn btn-primary" style="flex: 1; justify-content: center;" onclick="goToTicketStep(2)">
+                    Próximo <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <div id="ticketStep2" style="display: none;">
+            <div class="form-group">
+                <label class="form-label">Assunto do Ticket</label>
+                <input type="text" class="form-input" id="ticketSubject" placeholder="Ex: Problema ao inscrever equipe">
+            </div>
+            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <button class="btn btn-outline" style="flex: 1; justify-content: center;" onclick="goToTicketStep(1)">
+                    <i class="fas fa-arrow-left"></i> Voltar
+                </button>
+                <button class="btn btn-primary" style="flex: 1; justify-content: center;" onclick="goToTicketStep(3)">
+                    Próximo <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <div id="ticketStep3" style="display: none;">
+            <div class="form-group">
+                <label class="form-label">Descrição Detalhada</label>
+                <textarea class="form-textarea" id="ticketDescription" placeholder="Descreva seu problema com o máximo de detalhes possível..."></textarea>
+            </div>
+            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <button class="btn btn-outline" style="flex: 1; justify-content: center;" onclick="goToTicketStep(2)">
+                    <i class="fas fa-arrow-left"></i> Voltar
+                </button>
+                <button class="btn btn-primary" style="flex: 1; justify-content: center;" onclick="submitNewTicket()">
+                    <i class="fas fa-paper-plane"></i> Enviar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 </body>
-        </html>
+    </html>
