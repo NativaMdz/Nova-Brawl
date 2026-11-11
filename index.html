@@ -38,9 +38,15 @@
             --purple: #8b5cf6;
         }
 
+html {
+    background: #000;
+    overscroll-behavior-y: none;
+}
+
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: transparent;
+    overscroll-behavior-y: none;
     color: var(--white);
     min-height: 100vh;
     overflow-x: hidden;
@@ -420,39 +426,52 @@ body {
             color: var(--gold);
         }
 
+        /* Menu lateral: anima só transform/opacity (roda na GPU), sem backdrop-filter pesado */
         .sidebar {
             position: fixed;
             top: 0;
-            left: -300px;
+            left: 0;
             width: 280px;
             height: 100vh;
-            background: rgba(0, 0, 0, 0.95);
-            backdrop-filter: blur(20px);
+            height: 100dvh;
+            background: rgba(8, 8, 12, 0.98);
             border-right: 1px solid var(--gold-20);
+            box-shadow: 10px 0 40px rgba(0, 0, 0, 0.6), 0 0 30px var(--gold-10);
             z-index: 200;
-            transition: left 0.3s ease;
             padding: 1.5rem;
             overflow-y: auto;
+            overscroll-behavior: contain;
+            transform: translate3d(-105%, 0, 0);
+            visibility: hidden;
+            transition: transform 0.28s cubic-bezier(0.22, 0.61, 0.36, 1), visibility 0s linear 0.28s;
+            will-change: transform;
         }
 
         .sidebar.active {
-            left: 0;
+            transform: translate3d(0, 0, 0);
+            visibility: visible;
+            transition: transform 0.28s cubic-bezier(0.22, 0.61, 0.36, 1), visibility 0s;
         }
 
         .sidebar-overlay {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(5px);
+            inset: 0;
+            background: radial-gradient(ellipse at 15% 50%, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.78));
             z-index: 199;
-            display: none;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.28s ease, visibility 0s linear 0.28s;
         }
 
         .sidebar-overlay.active {
-            display: block;
+            opacity: 1;
+            visibility: visible;
+            transition: opacity 0.28s ease, visibility 0s;
+        }
+
+        /* Desfoque leve só no desktop; no celular ele é o que causava a lentidão */
+        @media (hover: hover) and (pointer: fine) {
+            .sidebar-overlay { backdrop-filter: blur(3px); }
         }
 
         .sidebar-menu {
@@ -468,7 +487,7 @@ body {
             color: var(--white-70);
             text-decoration: none;
             border-radius: 0.75rem;
-            transition: all 0.3s ease;
+            transition: background-color 0.2s ease, color 0.2s ease;
             margin-bottom: 0.5rem;
             cursor: pointer;
         }
@@ -1508,19 +1527,6 @@ body {
             opacity: 1;
         }
 
-        .sidebar {
-            transition: left 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-        }
-
-        .sidebar-overlay {
-            transition: opacity 0.35s ease;
-            opacity: 0;
-        }
-
-        .sidebar-overlay.active {
-            opacity: 1;
-        }
-
         .header {
             transition: background 0.3s ease, backdrop-filter 0.3s ease, box-shadow 0.3s ease;
         }
@@ -1637,14 +1643,18 @@ body {
         }
 
         .footer-section ul li a {
-            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            display: inline-block;
+            transition: color 0.3s ease, transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
             position: relative;
         }
 
+        /* A seta fica fora do fluxo: não empurra o texto, que alinha com os títulos */
         .footer-section ul li a::before {
-            content: '→ ';
+            content: '→';
+            position: absolute;
+            left: -1.2em;
             opacity: 0;
-            transition: all 0.3s ease;
+            transition: opacity 0.3s ease;
         }
 
         .footer-section ul li a:hover::before {
@@ -1901,29 +1911,7 @@ body {
                 <!-- Dynamic stats -->
             </div>
 
-            <div class="countdown-section animate-fadeIn">
-                <div class="countdown-header">
-                    <i class="fas fa-clock"></i>
-                    <h3>Próximo Campeonato</h3>
-                </div>
-                <div class="countdown-grid">
-                    <div>
-                        <h4 style="font-size: 1.5rem; color: var(--gold);">Copa Nova Brawl - Temporada 1</h4>
-                        <p style="color: var(--white-70); margin-top: 0.5rem;">Modo: Brawl Ball 3v3 | Premiação: R$ 5.000</p>
-                        <div class="countdown-timer" style="margin-top: 1rem;">
-                            <div class="countdown-item"><div class="countdown-number" id="countDays">12</div><div class="countdown-label">Dias</div></div>
-                            <div class="countdown-item"><div class="countdown-number" id="countHours">08</div><div class="countdown-label">Horas</div></div>
-                            <div class="countdown-item"><div class="countdown-number" id="countMins">45</div><div class="countdown-label">Min</div></div>
-                            <div class="countdown-item"><div class="countdown-number" id="countSecs">30</div><div class="countdown-label">Seg</div></div>
-                        </div>
-                    </div>
-                    <div style="display: flex; justify-content: center; align-items: center;">
-                        <button class="btn btn-primary btn-lg animate-pulse" onclick="subscribeToTournament()">
-                            <i class="fas fa-check-circle"></i> Inscrever-se Agora
-                        </button>
-                    </div>
-                </div>
-            </div>
+            <div class="countdown-section animate-fadeIn" id="nextTournamentSection" style="display: none;"></div>
 
             <h2 class="section-title animate-fadeIn"><i class="fas fa-users"></i> Equipes em Destaque</h2>
             <div class="cards-grid" id="featuredTeams"></div>
@@ -2058,7 +2046,66 @@ body {
         <!-- Admin Section -->
         <section id="adminSection" style="display: none;">
             <h2 class="section-title"><i class="fas fa-cog"></i> Administração</h2>
-            
+
+            <div class="glass" style="padding: 2rem; border-radius: 1rem; margin-top: 2rem;">
+                <div style="margin-bottom: 1.5rem;">
+                    <h3 style="color: var(--gold);"><i class="fas fa-trophy"></i> Campeonatos</h3>
+                    <p style="color: var(--white-50); font-size: 0.9rem; margin-top: 0.5rem;">Crie e gerencie os campeonatos que aparecem no site.</p>
+                </div>
+
+                <form id="createTournamentForm" onsubmit="createTournament(event)">
+                    <div class="form-group">
+                        <label class="form-label">Nome do Campeonato</label>
+                        <input type="text" class="form-input" id="tournName" placeholder="Ex: Copa Nova Brawl" required maxlength="60">
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.8rem;">
+                        <div class="form-group">
+                            <label class="form-label">Modo de Jogo</label>
+                            <input type="text" class="form-input" id="tournMode" list="tournModeList" placeholder="Ex: Brawl Ball 3v3" required maxlength="40">
+                            <datalist id="tournModeList">
+                                <option value="Brawl Ball 3v3"></option>
+                                <option value="Gem Grab 3v3"></option>
+                                <option value="Heist 3v3"></option>
+                                <option value="Bounty 3v3"></option>
+                                <option value="Hot Zone 3v3"></option>
+                                <option value="Knockout 3v3"></option>
+                                <option value="Solo Showdown"></option>
+                                <option value="Duo Showdown"></option>
+                            </datalist>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Premiação (R$)</label>
+                            <input type="number" class="form-input" id="tournPrize" placeholder="0" min="0" step="1">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Data e Hora</label>
+                            <input type="datetime-local" class="form-input" id="tournDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Vagas (equipes)</label>
+                            <input type="number" class="form-input" id="tournMaxTeams" value="16" min="2" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" id="tournStatus">
+                                <option value="upcoming">Em breve</option>
+                                <option value="active">Ativo</option>
+                                <option value="past">Encerrado</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Descrição (opcional)</label>
+                        <textarea class="form-textarea" id="tournDescription" placeholder="Regras, formato, informações gerais..." maxlength="300"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Criar Campeonato
+                    </button>
+                </form>
+
+                <div id="adminTournamentsList" style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); margin-top: 2rem;"></div>
+            </div>
+
             <div class="glass" style="padding: 2rem; border-radius: 1rem; margin-top: 2rem;">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;">
                     <div>
@@ -2337,59 +2384,14 @@ body {
         // ===== DATA STORE =====
         users = JSON.parse(localStorage.getItem('novaBrawlUsers') || '[]');
         currentUser = JSON.parse(localStorage.getItem('novaBrawlCurrentUser') || 'null');
-        let teams = JSON.parse(localStorage.getItem('novaBrawlTeams') || '[]');
-        let tournaments = JSON.parse(localStorage.getItem('novaBrawlTournaments') || JSON.stringify([
-            {
-                id: 't1',
-                name: 'Copa Nova Brawl - Temporada 1',
-                mode: 'Brawl Ball 3v3',
-                prize: 'R$ 5.000',
-                status: 'active',
-                date: '2026-07-20T20:00:00',
-                maxTeams: 32,
-                subscribedTeams: [],
-                description: 'O maior campeonato da temporada! Compita com as melhores equipes e mostre seu talento.'
-            },
-            {
-                id: 't2',
-                name: 'Desafio Solo Showdown',
-                mode: 'Solo Showdown',
-                prize: 'R$ 2.000',
-                status: 'upcoming',
-                date: '2026-08-05T18:00:00',
-                maxTeams: 64,
-                subscribedTeams: [],
-                description: 'Desafio individual onde só os melhores sobrevivem!'
-            },
-            {
-                id: 't3',
-                name: 'Copa Gem Grab',
-                mode: 'Gem Grab 3v3',
-                prize: 'R$ 3.000',
-                status: 'upcoming',
-                date: '2026-08-15T19:00:00',
-                maxTeams: 48,
-                subscribedTeams: [],
-                description: 'Competição intensa de Gem Grab. Coordenação é a chave!'
-            },
-            {
-                id: 't4',
-                name: 'Torneio Heist',
-                mode: 'Heist 3v3',
-                prize: 'R$ 1.500',
-                status: 'past',
-                date: '2026-06-10T20:00:00',
-                maxTeams: 24,
-                subscribedTeams: ['team_demo_1', 'team_demo_2'],
-                description: 'Torneio de Heist já encerrado. Veja os resultados!'
-            }
-        ]));
+        let teams = [];
+        // Campeonatos agora vêm do Firestore (coleção "tournaments"), criados na aba Admin
+        let tournaments = [];
+        let tournamentsLoaded = false;
+        try { localStorage.removeItem('novaBrawlTournaments'); } catch (e) {}
         supportTickets = JSON.parse(localStorage.getItem('novaBrawlTickets') || '[]');
         let uploadedLogoData = null;
         let editingTeamId = null;
-
-        // Parse stored data
-        tournaments = typeof tournaments === 'string' ? JSON.parse(tournaments) : tournaments;
 
         // ===== THEMES & STORE DEFINITION =====
         const themesData = {
@@ -2485,47 +2487,23 @@ document.querySelectorAll('.form-select').forEach(select => {
         }
 
         // ===== RANKING DATA =====
+        function getWinRate(t) {
+            const games = (t.wins || 0) + (t.losses || 0);
+            return games > 0 ? Math.round((t.wins / games) * 100) : 0;
+        }
+
+        // Ranking só com equipes reais (criadas pelos donos). Sem dados fictícios.
         function generateRankingData() {
-            const allTeams = [...teams];
-            const demoNames = ['Nova Elite', 'Shadow Dragons', 'Thunder Strike', 'Phoenix Rising', 
-                'Ice Wolves', 'Golden Lions', 'Dark Knights', 'Fire Eagles', 'Storm Breakers', 'Mystic Force'];
-            const demoLogos = [null, null, null, null, null, null, null, null, null, null];
-            
-            demoNames.forEach((name, i) => {
-                if (!allTeams.find(t => t.name === name)) {
-                    allTeams.push({
-                        id: 'demo_' + i,
-                        name: name,
-                        logo: null,
-                        players: [
-                            { nick: 'Player' + (i*3+1), tag: '#ABC' + i, trophies: 25000 + Math.floor(Math.random() * 10000), isCaptain: true },
-                            { nick: 'Player' + (i*3+2), tag: '#DEF' + i, trophies: 22000 + Math.floor(Math.random() * 10000), isCaptain: false },
-                            { nick: 'Player' + (i*3+3), tag: '#GHI' + i, trophies: 20000 + Math.floor(Math.random() * 10000), isCaptain: false }
-                        ],
-                        winRate: 60 + Math.floor(Math.random() * 30),
-                        elo: 800 + Math.floor(Math.random() * 1200),
-                        wins: Math.floor(Math.random() * 50) + 10,
-                        losses: Math.floor(Math.random() * 30),
-                        createdAt: new Date(Date.now() - Math.random() * 10000000000).toISOString()
-                    });
-                }
-            });
-
-            allTeams.forEach(t => {
-                if (!t.elo) t.elo = 800 + Math.floor(Math.random() * 1200);
-                if (!t.wins) t.wins = Math.floor(Math.random() * 50) + 10;
-                if (!t.losses) t.losses = Math.floor(Math.random() * 30);
-                if (!t.winRate) t.winRate = Math.round((t.wins / (t.wins + t.losses)) * 100);
-            });
-
-            allTeams.sort((a, b) => (b.elo || 0) - (a.elo || 0));
-            
-            return allTeams.map((t, i) => ({
-                ...t,
-                rank: i + 1,
-                trend: Math.random() > 0.5 ? 'up' : (Math.random() > 0.5 ? 'down' : 'same'),
-                trendValue: Math.floor(Math.random() * 5) + 1
-            }));
+            return [...teams]
+                .map(t => ({
+                    ...t,
+                    elo: typeof t.elo === 'number' ? t.elo : 1000,
+                    wins: t.wins || 0,
+                    losses: t.losses || 0,
+                    winRate: getWinRate(t)
+                }))
+                .sort((a, b) => b.elo - a.elo)
+                .map((t, i) => ({ ...t, rank: i + 1, trend: 'same', trendValue: 0 }));
         }
 
         function getEloLevel(elo) {
@@ -2546,6 +2524,25 @@ document.querySelectorAll('.form-select').forEach(select => {
             } else if (sessionStorage.getItem('novaBrawlCurrentUser')) {
                 sessionStorage.setItem('novaBrawlCurrentUser', JSON.stringify(currentUser));
             }
+        }
+
+        function loadTournaments() {
+            onSnapshot(collection(db, "tournaments"), (snapshot) => {
+                tournaments = [];
+                snapshot.forEach((d) => {
+                    tournaments.push({ subscribedTeams: [], ...d.data(), id: d.id });
+                });
+                tournaments.sort((a, b) => new Date(a.date) - new Date(b.date));
+                tournamentsLoaded = true;
+                renderStats();
+                renderNextTournament();
+                renderTournaments();
+                renderAdminTournaments();
+            }, (error) => {
+                console.error("Erro ao carregar campeonatos:", error);
+                tournamentsLoaded = true;
+                renderNextTournament();
+            });
         }
 
         function loadTeams() {
@@ -2784,9 +2781,8 @@ document.querySelectorAll('.form-select').forEach(select => {
             if (currentUser) {
                 headerActions.innerHTML = `
          <div style="position: relative;">
-                        <button class="icon-btn" onclick="showNotification('Você tem notificações', 'info')">
+                        <button class="icon-btn" onclick="showNotification('Você não tem notificações novas.', 'info')">
                             <i class="fas fa-bell"></i>
-                            <span class="badge">3</span>
                         </button>
                     </div>
                     <div class="dropdown">
@@ -3176,102 +3172,171 @@ document.querySelectorAll('.form-select').forEach(select => {
         });
 
         // ===== TOURNAMENT SUBSCRIPTION =====
-        function subscribeToTournament() {
-            if (!currentUser) {
-                showNotification('Faça login para se inscrever em campeonatos!', 'warning');
-                openModal('loginModal');
-                return;
-            }
-            
-            const userTeam = teams.find(t => 
-                t.players.some(p => p.tag === currentUser.tag) ||
-                t.createdBy === currentUser.id
-            );
-            
-            if (!userTeam) {
-                showNotification('Você precisa ter uma equipe registrada para se inscrever! Crie uma equipe primeiro.', 'warning');
-                setTimeout(() => showSection('teams'), 1500);
-                return;
-            }
-            
-            const activeTournament = tournaments.find(t => t.status === 'active');
-            if (!activeTournament) {
-                showNotification('Nenhum campeonato ativo no momento.', 'info');
-                return;
-            }
-            
-            if (activeTournament.subscribedTeams.includes(userTeam.id)) {
-                showNotification('Sua equipe já está inscrita neste campeonato!', 'info');
-                return;
-            }
-            
-            if (activeTournament.subscribedTeams.length >= activeTournament.maxTeams) {
-                showNotification('Este campeonato já atingiu o número máximo de equipes!', 'error');
-                return;
-            }
-            
-            activeTournament.subscribedTeams.push(userTeam.id);
-            saveTournaments();
-            showNotification(`Equipe "${userTeam.name}" inscrita com sucesso na ${activeTournament.name}! 🎉`, 'success');
+        function getUserTeam() {
+            if (!currentUser) return null;
+            return teams.find(t =>
+                (t.players || []).some(p => p.tag === currentUser.tag) ||
+                t.createdBy === currentUser.id ||
+                t.captainId === currentUser.id
+            ) || null;
         }
 
-        function saveTournaments() {
-            localStorage.setItem('novaBrawlTournaments', JSON.stringify(tournaments));
-        }
-
-        function subscribeToTournamentById(tournamentId) {
+        async function subscribeToTournamentById(tournamentId) {
             if (!currentUser) {
                 showNotification('Faça login para se inscrever!', 'warning');
                 openModal('loginModal');
                 return;
             }
-            
-            const userTeam = teams.find(t => 
-                t.players.some(p => p.tag === currentUser.tag) ||
-                t.createdBy === currentUser.id
-            );
-            
+
+            const userTeam = getUserTeam();
             if (!userTeam) {
-                showNotification('Você precisa ter uma equipe registrada para se inscrever!', 'warning');
+                showNotification('Você precisa ter uma equipe registrada para se inscrever! Crie uma equipe primeiro.', 'warning');
+                setTimeout(() => showSection('teams'), 1500);
                 return;
             }
-            
+
             const tournament = tournaments.find(t => t.id === tournamentId);
             if (!tournament) return;
-            
-            if (tournament.subscribedTeams.includes(userTeam.id)) {
+
+            const list = tournament.subscribedTeams || [];
+            if (list.includes(userTeam.id)) {
                 showNotification('Sua equipe já está inscrita!', 'info');
                 return;
             }
-            
-            if (tournament.subscribedTeams.length >= tournament.maxTeams) {
+            if (list.length >= tournament.maxTeams) {
                 showNotification('Campeonato lotado!', 'error');
                 return;
             }
-            
-            tournament.subscribedTeams.push(userTeam.id);
-            saveTournaments();
-            showNotification(`Equipe "${userTeam.name}" inscrita na ${tournament.name}! 🎉`, 'success');
-            renderTournaments();
+
+            try {
+                await updateDoc(doc(db, "tournaments", tournamentId), { subscribedTeams: [...list, userTeam.id] });
+                showNotification(`Equipe "${userTeam.name}" inscrita na ${tournament.name}! 🎉`, 'success');
+            } catch (err) {
+                console.error('Erro ao inscrever equipe:', err);
+                showNotification('Não foi possível concluir a inscrição.', 'error');
+            }
         }
 
-        function unsubscribeFromTournament(tournamentId) {
-            if (!currentUser) return;
-            
-            const userTeam = teams.find(t => 
-                t.players.some(p => p.tag === currentUser.tag) ||
-                t.createdBy === currentUser.id
-            );
-            
+        async function unsubscribeFromTournament(tournamentId) {
+            const userTeam = getUserTeam();
             if (!userTeam) return;
-            
+
             const tournament = tournaments.find(t => t.id === tournamentId);
             if (!tournament) return;
-            
-            tournament.subscribedTeams = tournament.subscribedTeams.filter(id => id !== userTeam.id);
-            saveTournaments();
-            showNotification('Inscrição cancelada.', 'info');
-            renderTournaments();
+
+            try {
+                await updateDoc(doc(db, "tournaments", tournamentId), {
+                    subscribedTeams: (tournament.subscribedTeams || []).filter(id => id !== userTeam.id)
+                });
+                showNotification('Inscrição cancelada.', 'info');
+            } catch (err) {
+                console.error('Erro ao cancelar inscrição:', err);
+                showNotification('Não foi possível cancelar a inscrição.', 'error');
+            }
+        }
+
+        // ===== ADMIN: CAMPEONATOS =====
+        function statusLabel(status) {
+            return { active: 'Ativo', upcoming: 'Em breve', past: 'Encerrado' }[status] || 'Em breve';
+        }
+
+        async function createTournament(e) {
+            e.preventDefault();
+            if (!currentUser || !currentUser.isAdmin) return;
+
+            const name = document.getElementById('tournName').value.trim();
+            const mode = document.getElementById('tournMode').value.trim();
+            const prizeValue = parseFloat(document.getElementById('tournPrize').value) || 0;
+            const dateValue = document.getElementById('tournDate').value;
+            const maxTeams = parseInt(document.getElementById('tournMaxTeams').value, 10);
+            const status = document.getElementById('tournStatus').value;
+            const description = document.getElementById('tournDescription').value.trim();
+
+            if (!name || !mode || !dateValue || !maxTeams || maxTeams < 2) {
+                showNotification('Preencha nome, modo, data e número de vagas.', 'error');
+                return;
+            }
+
+            try {
+                await addDoc(collection(db, "tournaments"), {
+                    name,
+                    mode,
+                    prizeValue,
+                    prize: prizeValue > 0 ? 'R$ ' + prizeValue.toLocaleString('pt-BR') : 'Sem premiação',
+                    status,
+                    date: new Date(dateValue).toISOString(),
+                    maxTeams,
+                    subscribedTeams: [],
+                    description,
+                    createdBy: currentUser.id,
+                    createdAt: new Date().toISOString()
+                });
+                document.getElementById('createTournamentForm').reset();
+                showNotification(`Campeonato "${name}" criado!`, 'success');
+            } catch (err) {
+                console.error('Erro ao criar campeonato:', err);
+                showNotification('Erro ao criar campeonato. Verifique as permissões do Firestore.', 'error');
+            }
+        }
+
+        async function setTournamentStatus(id, status) {
+            if (!currentUser || !currentUser.isAdmin) return;
+            try {
+                await updateDoc(doc(db, "tournaments", id), { status });
+                showNotification(`Status alterado para "${statusLabel(status)}".`, 'success');
+            } catch (err) {
+                console.error('Erro ao alterar status:', err);
+                showNotification('Erro ao alterar status.', 'error');
+            }
+        }
+
+        async function deleteTournament(id) {
+            if (!currentUser || !currentUser.isAdmin) return;
+            if (!confirm('Excluir este campeonato? Essa ação não pode ser desfeita.')) return;
+            try {
+                await deleteDoc(doc(db, "tournaments", id));
+                showNotification('Campeonato excluído.', 'success');
+            } catch (err) {
+                console.error('Erro ao excluir campeonato:', err);
+                showNotification('Erro ao excluir campeonato.', 'error');
+            }
+        }
+
+        function renderAdminTournaments() {
+            const container = document.getElementById('adminTournamentsList');
+            if (!container) return;
+
+            if (!currentUser || !currentUser.isAdmin) { container.innerHTML = ''; return; }
+
+            if (tournaments.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state" style="grid-column: 1 / -1; padding: 1.5rem;">
+                        <i class="fas fa-trophy"></i>
+                        <h4 style="margin-top: 0.5rem;">Nenhum campeonato criado</h4>
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = tournaments.map(t => `
+                <div class="glass" style="padding: 1rem; border-radius: 0.75rem;">
+                    <strong style="color: var(--gold); display: block; font-size: 1.05rem;">${escapeHtml(t.name)}</strong>
+                    <span style="color: var(--white-50); font-size: 0.8rem; display: block; margin-top: 0.3rem;">
+                        ${escapeHtml(t.mode || '')} • ${escapeHtml(t.prize || 'Sem premiação')}<br>
+                        ${new Date(t.date).toLocaleDateString('pt-BR')} às ${new Date(t.date).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'})}<br>
+                        Inscritos: ${(t.subscribedTeams || []).length}/${t.maxTeams}
+                    </span>
+                    <div style="display: flex; gap: 0.5rem; margin-top: 0.8rem;">
+                        <select class="form-select" style="flex: 1;" onchange="setTournamentStatus('${t.id}', this.value)">
+                            <option value="upcoming" ${t.status === 'upcoming' ? 'selected' : ''}>Em breve</option>
+                            <option value="active" ${t.status === 'active' ? 'selected' : ''}>Ativo</option>
+                            <option value="past" ${t.status === 'past' ? 'selected' : ''}>Encerrado</option>
+                        </select>
+                        <button class="icon-btn" onclick="deleteTournament('${t.id}')" title="Excluir" style="color: var(--red);">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
         }
 
         // ===== SUPPORT SYSTEM (ATUALIZADO COM MODAL) =====
@@ -3470,7 +3535,9 @@ document.querySelectorAll('.form-select').forEach(select => {
             renderStats();
             renderFeaturedTeams();
             renderNews();
+            renderNextTournament();
             renderTournaments();
+            renderAdminTournaments();
             renderTeamsGrid();
             renderRankings();
             renderSupportContent();
@@ -3481,12 +3548,14 @@ document.querySelectorAll('.form-select').forEach(select => {
         function renderStats() {
             const container = document.getElementById('statsGrid');
             if (!container) return;
-            
-            const totalTeamsCount = teams.length + 4;
-            const totalPlayers = currentUser ? users.length + 12500 : 12500;
+
+            const totalTeamsCount = teams.length;
+            const totalPlayers = new Set(
+                teams.flatMap(t => (t.players || []).map(p => (p.tag || '').toUpperCase()).filter(Boolean))
+            ).size;
             const totalTournaments = tournaments.length;
-            const totalPrize = 'R$ 25k';
-            
+            const totalPrize = tournaments.reduce((sum, t) => sum + (Number(t.prizeValue) || 0), 0);
+
             container.innerHTML = `
                 <div class="stat-card glass-hover animate-fadeIn">
                     <div class="stat-icon gold"><i class="fas fa-trophy"></i></div>
@@ -3495,8 +3564,8 @@ document.querySelectorAll('.form-select').forEach(select => {
                 </div>
                 <div class="stat-card glass-hover animate-fadeIn" style="animation-delay: 0.1s;">
                     <div class="stat-icon blue"><i class="fas fa-users"></i></div>
-                    <div class="stat-value">${(totalPlayers / 1000).toFixed(1)}k</div>
-                    <div class="stat-label">Jogadores Ativos</div>
+                    <div class="stat-value">${totalPlayers}</div>
+                    <div class="stat-label">Jogadores em Equipes</div>
                 </div>
                 <div class="stat-card glass-hover animate-fadeIn" style="animation-delay: 0.2s;">
                     <div class="stat-icon green"><i class="fas fa-calendar-check"></i></div>
@@ -3505,7 +3574,7 @@ document.querySelectorAll('.form-select').forEach(select => {
                 </div>
                 <div class="stat-card glass-hover animate-fadeIn" style="animation-delay: 0.3s;">
                     <div class="stat-icon purple"><i class="fas fa-star"></i></div>
-                    <div class="stat-value">${totalPrize}</div>
+                    <div class="stat-value">R$ ${totalPrize.toLocaleString('pt-BR')}</div>
                     <div class="stat-label">Em Premiações</div>
                 </div>
             `;
@@ -3514,16 +3583,27 @@ document.querySelectorAll('.form-select').forEach(select => {
         function renderFeaturedTeams() {
             const container = document.getElementById('featuredTeams');
             if (!container) return;
-            
-            const rankingData = generateRankingData();
-            const topTeams = rankingData.slice(0, 4);
-            
+
+            const topTeams = generateRankingData().slice(0, 4);
+
+            if (topTeams.length === 0) {
+                container.style.display = 'block';
+                container.innerHTML = `
+                    <div class="empty-state" style="padding: 2rem;">
+                        <i class="fas fa-users-slash"></i>
+                        <h3>Nenhuma equipe registrada ainda</h3>
+                        <p>As equipes criadas pela comunidade aparecem aqui.</p>
+                    </div>`;
+                return;
+            }
+            container.style.display = '';
+
             container.innerHTML = topTeams.map((team, i) => {
-                const logoContent = team.logo 
-                    ? `<img src="${team.logo}" alt="${team.name}">`
+                const logoContent = team.logo
+                    ? `<img src="${team.logo}" alt="${escapeHtml(team.name)}">`
                     : getDefaultLogoIcon(i);
                 const bgStyle = team.logo ? '' : getDefaultLogoStyle(i);
-                
+
                 return `
                     <div class="card glass-hover" style="text-align: center; padding: 2rem; cursor: pointer;" onclick="viewTeam('${team.id}')">
                         <div class="team-logo-placeholder" style="${bgStyle}">${logoContent}</div>
@@ -3533,6 +3613,76 @@ document.querySelectorAll('.form-select').forEach(select => {
                     </div>
                 `;
             }).join('');
+        }
+
+        // Próximo campeonato real (o mais próximo entre "Ativo" e "Em breve")
+        let countdownTarget = null;
+
+        function getNextTournament() {
+            const open = tournaments.filter(t => t.status === 'active' || t.status === 'upcoming');
+            const now = Date.now();
+            const future = open.filter(t => new Date(t.date).getTime() >= now)
+                               .sort((a, b) => new Date(a.date) - new Date(b.date));
+            if (future.length) return future[0];
+            return open.sort((a, b) => new Date(b.date) - new Date(a.date))[0] || null;
+        }
+
+        function renderNextTournament() {
+            const container = document.getElementById('nextTournamentSection');
+            if (!container) return;
+            if (!tournamentsLoaded) return;
+
+            container.style.display = '';
+            const t = getNextTournament();
+
+            if (!t) {
+                countdownTarget = null;
+                container.innerHTML = `
+                    <div class="countdown-header">
+                        <i class="fas fa-clock"></i>
+                        <h3>Próximo Campeonato</h3>
+                    </div>
+                    <div class="empty-state" style="padding: 1.5rem;">
+                        <i class="fas fa-calendar-times"></i>
+                        <h3>Nenhum campeonato agendado</h3>
+                        <p>Os próximos campeonatos serão divulgados aqui.</p>
+                    </div>`;
+                return;
+            }
+
+            countdownTarget = new Date(t.date).getTime();
+            const subs = t.subscribedTeams || [];
+            const full = subs.length >= t.maxTeams;
+            const userTeam = getUserTeam();
+            const isSubscribed = userTeam && subs.includes(userTeam.id);
+
+            container.innerHTML = `
+                <div class="countdown-header">
+                    <i class="fas fa-clock"></i>
+                    <h3>Próximo Campeonato</h3>
+                </div>
+                <div class="countdown-grid">
+                    <div>
+                        <h4 style="font-size: 1.5rem; color: var(--gold);">${escapeHtml(t.name)}</h4>
+                        <p style="color: var(--white-70); margin-top: 0.5rem;">Modo: ${escapeHtml(t.mode || '')} | Premiação: ${escapeHtml(t.prize || 'Sem premiação')}</p>
+                        <div class="countdown-timer" style="margin-top: 1rem;">
+                            <div class="countdown-item"><div class="countdown-number" id="countDays">00</div><div class="countdown-label">Dias</div></div>
+                            <div class="countdown-item"><div class="countdown-number" id="countHours">00</div><div class="countdown-label">Horas</div></div>
+                            <div class="countdown-item"><div class="countdown-number" id="countMins">00</div><div class="countdown-label">Min</div></div>
+                            <div class="countdown-item"><div class="countdown-number" id="countSecs">00</div><div class="countdown-label">Seg</div></div>
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: center; align-items: center;">
+                        ${isSubscribed ? `
+                            <button class="btn btn-outline btn-lg" disabled><i class="fas fa-check-circle"></i> Equipe Inscrita</button>
+                        ` : `
+                            <button class="btn btn-primary btn-lg ${full ? '' : 'animate-pulse'}" ${full ? 'disabled' : ''} onclick="subscribeToTournamentById('${t.id}')">
+                                <i class="fas fa-check-circle"></i> ${full ? 'Vagas Esgotadas' : 'Inscrever-se Agora'}
+                            </button>
+                        `}
+                    </div>
+                </div>`;
+            tickCountdown();
         }
 
         function renderNews() {
@@ -3587,13 +3737,10 @@ document.querySelectorAll('.form-select').forEach(select => {
                     return;
                 }
                 
-                const userTeam = teams.find(t => 
-                    t.players.some(p => p.tag === currentUser.tag) ||
-                    t.createdBy === currentUser.id
-                );
+                const userTeam = getUserTeam();
                 
                 filteredTournaments = tournaments.filter(t => 
-                    userTeam && t.subscribedTeams.includes(userTeam.id)
+                    userTeam && (t.subscribedTeams || []).includes(userTeam.id)
                 );
             } else {
                 filteredTournaments = tournaments.filter(t => t.status === tab);
@@ -3610,14 +3757,12 @@ document.querySelectorAll('.form-select').forEach(select => {
                 return;
             }
             
-            const userTeam = currentUser ? teams.find(t => 
-                t.players.some(p => p.tag === currentUser.tag) ||
-                t.createdBy === currentUser.id
-            ) : null;
+            const userTeam = getUserTeam();
             
             container.innerHTML = filteredTournaments.map(t => {
-                const isSubscribed = userTeam && t.subscribedTeams.includes(userTeam.id);
-                const spotsLeft = t.maxTeams - t.subscribedTeams.length;
+                const subs = t.subscribedTeams || [];
+                const isSubscribed = userTeam && subs.includes(userTeam.id);
+                const spotsLeft = t.maxTeams - subs.length;
                 const statusLabels = {
                     active: { text: 'Ativo', class: 'status-open' },
                     upcoming: { text: 'Em breve', class: 'status-progress' },
@@ -3631,15 +3776,15 @@ document.querySelectorAll('.form-select').forEach(select => {
                             <div>
                                 <span class="ticket-status ${status.class}">${status.text}</span>
                                 <h3 style="color: var(--gold); margin-top: 0.8rem;">${escapeHtml(t.name)}</h3>
-                                <p style="color: var(--white-70);">Modo: ${t.mode} | Premiação: ${t.prize}</p>
+                                <p style="color: var(--white-70);">Modo: ${escapeHtml(t.mode || '')} | Premiação: ${escapeHtml(t.prize || 'Sem premiação')}</p>
                                 <p style="color: var(--white-50); font-size: 0.85rem;">
                                     Data: ${new Date(t.date).toLocaleDateString('pt-BR')} às ${new Date(t.date).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}
                                 </p>
                                 <p style="color: var(--white-50); font-size: 0.85rem;">
-                                    Vagas: ${t.subscribedTeams.length}/${t.maxTeams} 
+                                    Vagas: ${subs.length}/${t.maxTeams} 
                                     (${spotsLeft} disponíveis)
                                 </p>
-                                <p style="color: var(--white-70); margin-top: 0.5rem;">${t.description}</p>
+                                ${t.description ? `<p style="color: var(--white-70); margin-top: 0.5rem;">${escapeHtml(t.description)}</p>` : ''}
                             </div>
                             <div>
                                 ${t.status === 'past' ? `
@@ -3667,6 +3812,18 @@ document.querySelectorAll('.form-select').forEach(select => {
             if (!container) return;
             
             const rankingData = generateRankingData();
+
+            if (rankingData.length === 0) {
+                container.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 3rem 1rem; color: var(--white-50);">
+                            <i class="fas fa-users-slash" style="font-size: 2.5rem; opacity: 0.3; display: block; margin-bottom: 1rem;"></i>
+                            <strong style="display: block; color: var(--white-70);">Nenhuma equipe no ranking ainda</strong>
+                            <span style="font-size: 0.9rem;">Crie uma equipe e participe de campeonatos para aparecer aqui.</span>
+                        </td>
+                    </tr>`;
+                return;
+            }
             
             container.innerHTML = rankingData.map((team, i) => {
                 const eloLevel = getEloLevel(team.elo);
@@ -3698,7 +3855,7 @@ document.querySelectorAll('.form-select').forEach(select => {
                         </td>
                         <td>
                             <span class="rank-change ${trendClass}">
-                                ${trendIcon} ${team.trendValue}
+                                ${team.trendValue ? `${trendIcon} ${team.trendValue}` : trendIcon}
                             </span>
                         </td>
                     </tr>
@@ -3945,7 +4102,7 @@ document.querySelectorAll('.form-select').forEach(select => {
                             <div class="team-card-logo" style="${bgStyle}">${logoContent}</div>
                             <div class="team-card-info">
                                 <h3>${escapeHtml(team.name)}</h3>
-                                <p>Win Rate: ${team.winRate || 'N/A'}%</p>
+                                <p>Win Rate: ${getWinRate(team)}%</p>
                             </div>
                         </div>
                         <div class="team-card-players">
@@ -4255,7 +4412,7 @@ document.querySelectorAll('.form-select').forEach(select => {
         // FUNÇÃO DE VISUALIZAR EQUIPE ATUALIZADA
         // ============================================
         function viewTeam(teamId) {
-            const team = teams.find(t => t.id === teamId) || generateRankingData().find(t => t.id === teamId);
+            const team = teams.find(t => t.id === teamId);
             if (!team) {
                 showNotification('Equipe não encontrada!', 'error');
                 return;
@@ -4267,7 +4424,7 @@ document.querySelectorAll('.form-select').forEach(select => {
                 ? `<img src="${team.logo}" alt="" style="width:100px;height:100px;border-radius:50%;object-fit:cover;border:3px solid var(--gold);">`
                 : `<div class="team-logo-placeholder" style="background:linear-gradient(135deg, var(--gold), var(--gold-dark));width:100px;height:100px;margin:0 auto;"><i class="fas fa-shield-halved"></i></div>`;
 
-            header.innerHTML = `${logoContent}<h2 class="modal-title" style="margin-top:1rem;">${escapeHtml(team.name)}</h2><p class="modal-subtitle">Win Rate: ${team.winRate || 'N/A'}% | ELO: ${team.elo || 'N/A'}</p>`;
+            header.innerHTML = `${logoContent}<h2 class="modal-title" style="margin-top:1rem;">${escapeHtml(team.name)}</h2><p class="modal-subtitle">Win Rate: ${getWinRate(team)}% | ELO: ${team.elo || 1000}</p>`;
             
             // Layout ajustado usando flex-direction: column e limitando overflow para evitar scroll horizontal
             body.innerHTML = `
@@ -4519,9 +4676,12 @@ document.querySelectorAll('.form-select').forEach(select => {
             }
         }
 
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('active');
-            document.getElementById('sidebarOverlay').classList.toggle('active');
+        function toggleSidebar(forceClose) {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            const open = forceClose === true ? false : !sidebar.classList.contains('active');
+            sidebar.classList.toggle('active', open);
+            overlay.classList.toggle('active', open);
         }
 
         function showSection(sectionName) {
@@ -4559,7 +4719,7 @@ document.querySelectorAll('.form-select').forEach(select => {
                 loadRewardCodes();
             }
             
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            window.scrollTo({ top: 0, behavior: 'instant' });
         }
 
         function getDefaultLogoIcon(index) {
@@ -4613,8 +4773,8 @@ document.querySelectorAll('.form-select').forEach(select => {
                 const link = e.target.closest('a');
                 if (link && link.dataset.section) {
                     e.preventDefault();
+                    if (window.innerWidth <= 1024) toggleSidebar(true);
                     showSection(link.dataset.section);
-                    if (window.innerWidth <= 1024) toggleSidebar();
                 }
             }
         });
@@ -4625,7 +4785,7 @@ document.querySelectorAll('.form-select').forEach(select => {
                     modal.classList.remove('active');
                     document.body.style.overflow = '';
                 });
-                if (document.getElementById('sidebar').classList.contains('active')) toggleSidebar();
+                toggleSidebar(true);
             }
         });
 
@@ -4657,31 +4817,24 @@ document.querySelectorAll('.form-select').forEach(select => {
         window.addEventListener('resize', handleResponsive);
 
         // ===== COUNTDOWN =====
+        function tickCountdown() {
+            const ids = ['countDays', 'countHours', 'countMins', 'countSecs'];
+            const els = ids.map(id => document.getElementById(id));
+            if (els.some(el => !el)) return;
+
+            const distance = countdownTarget == null ? 0 : Math.max(0, countdownTarget - Date.now());
+            const values = [
+                Math.floor(distance / 86400000),
+                Math.floor((distance % 86400000) / 3600000),
+                Math.floor((distance % 3600000) / 60000),
+                Math.floor((distance % 60000) / 1000)
+            ];
+            els.forEach((el, i) => { el.textContent = String(values[i]).padStart(2, '0'); });
+        }
+
         function updateCountdown() {
-            const targetDate = new Date();
-            targetDate.setDate(targetDate.getDate() + 12);
-            targetDate.setHours(20, 0, 0, 0);
-            
-            function tick() {
-                const now = new Date().getTime();
-                const distance = targetDate.getTime() - now;
-                
-                if (distance < 0) {
-                    ['countDays', 'countHours', 'countMins', 'countSecs'].forEach(id => {
-                        const el = document.getElementById(id);
-                        if (el) el.textContent = '00';
-                    });
-                    return;
-                }
-                
-                document.getElementById('countDays').textContent = String(Math.floor(distance / (1000 * 60 * 60 * 24))).padStart(2, '0');
-                document.getElementById('countHours').textContent = String(Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))).padStart(2, '0');
-                document.getElementById('countMins').textContent = String(Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))).padStart(2, '0');
-                document.getElementById('countSecs').textContent = String(Math.floor((distance % (1000 * 60)) / 1000)).padStart(2, '0');
-            }
-            
-            tick();
-            setInterval(tick, 1000);
+            tickCountdown();
+            setInterval(tickCountdown, 1000);
         }
 
         // ===== PARTICLES =====
@@ -4788,6 +4941,7 @@ document.querySelectorAll('.form-select').forEach(select => {
 
                 if (!teamsListenerStarted) {
                     loadTeams();
+                    loadTournaments();
                     teamsListenerStarted = true;
                 }
             });
@@ -4814,11 +4968,13 @@ document.querySelectorAll('.form-select').forEach(select => {
     <!-- 🎬 Vídeo de fundo -->
     <video autoplay muted loop playsinline id="bgVideo" style="
         position: fixed;
-        top: 0;
-        left: 0;
+        inset: 0;
         width: 100%;
         height: 100%;
         object-fit: cover;
+        background: #000;
+        will-change: transform;
+        transform: translateZ(0);
         z-index: -2;">
         <source src="fundosite.mp4" type="video/mp4">
     </video>
@@ -4826,11 +4982,12 @@ document.querySelectorAll('.form-select').forEach(select => {
     <!-- 🌑 Overlay escuro sobre o vídeo -->
     <div style="
         position: fixed;
-        top: 0;
-        left: 0;
+        inset: 0;
         width: 100%;
         height: 100%;
         background: rgba(0, 0, 0, 0.80);
+        will-change: transform;
+        transform: translateZ(0);
         z-index: -1;
     "></div>
 
