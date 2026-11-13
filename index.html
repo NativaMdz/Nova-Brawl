@@ -1946,6 +1946,12 @@ body {
 
         #gateInstallBtn { width: 100%; justify-content: center; padding: 1rem; font-size: 1.05rem; }
 
+        @keyframes gateFlash {
+            0%, 100% { box-shadow: 0 0 0 0 transparent; }
+            40% { box-shadow: 0 0 0 4px var(--gold-50); }
+        }
+        .gate-flash { animation: gateFlash 1.2s ease 1; }
+
         .gate-steps {
             text-align: left;
             background: var(--white-10);
@@ -1998,9 +2004,14 @@ body {
                 <li><i class="fas fa-feather-pointed"></i> Leve, quase não ocupa espaço</li>
             </ul>
 
-            <button class="btn btn-primary btn-lg" id="gateInstallBtn" style="display: none;">
+            <button class="btn btn-primary btn-lg" id="gateInstallBtn">
                 <i class="fas fa-download"></i> Instalar app
             </button>
+
+            <!-- Aparece só no Android e só se APK_URL estiver preenchido no script abaixo -->
+            <a class="btn btn-outline btn-lg" id="gateApkBtn" href="#" download style="display: none; width: 100%; justify-content: center; margin-top: 0.75rem;">
+                <i class="fab fa-android"></i> Baixar APK (Android)
+            </a>
 
             <!-- iPhone / iPad -->
             <ol class="gate-steps" id="gateStepsIos" style="display: none;">
@@ -2040,6 +2051,9 @@ body {
 
         var ua = navigator.userAgent || '';
         var isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        var isAndroid = /Android/i.test(ua);
+        // Link direto do APK (ex.: um arquivo nas Releases do GitHub). Deixe vazio para esconder o botão.
+        var APK_URL = '';
         var isInApp = /FBAN|FBAV|Instagram|Line\/|Snapchat|TikTok|musical_ly|BytedanceWebview|MicroMessenger|Twitter/i.test(ua);
 
         var $ = function (id) { return document.getElementById(id); };
@@ -2063,23 +2077,34 @@ body {
         function markInstalled() {
             try { localStorage.setItem('nbAppInstalled', '1'); } catch (e) {}
             show(installBtn, false);
+            show($('gateApkBtn'), false);
             show($('gateStepsIos'), false);
             show($('gateManual'), false);
             $('gateDoneNotice').classList.add('show');
         }
 
-        function showInstallButton() { if (window.__deferredPrompt) show(installBtn, true); }
-        if (window.__deferredPrompt) showInstallButton();
-        document.addEventListener('nb-install-ready', showInstallButton);
+        if (APK_URL && isAndroid) {
+            var apk = $('gateApkBtn');
+            apk.href = APK_URL;
+            show(apk, true);
+        }
+
+        // Mostra as instruções e chama atenção para elas
+        function revealSteps() {
+            var target = isIOS ? $('gateStepsIos') : $('gateManual');
+            if (!isIOS) { show(target, true); target.open = true; }
+            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            target.classList.remove('gate-flash'); void target.offsetWidth; target.classList.add('gate-flash');
+        }
 
         installBtn.addEventListener('click', function () {
             var dp = window.__deferredPrompt;
-            if (!dp) return;
+            if (!dp) { revealSteps(); return; }   // sem convite do navegador: mostra o passo a passo
             dp.prompt();
             dp.userChoice.then(function (choice) {
                 window.__deferredPrompt = null;
                 if (choice && choice.outcome === 'accepted') markInstalled();
-                else show(installBtn, false);
+                else revealSteps();
             });
         });
 
