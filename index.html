@@ -44,8 +44,11 @@
 
         // Service worker (obrigatório para o navegador oferecer a instalação)
         if ('serviceWorker' in nav && /^https?:$/.test(location.protocol)) {
+            window.__swStatus = 'registrando';
             window.addEventListener('load', function () {
-                nav.serviceWorker.register('sw.js').catch(function () {});
+                nav.serviceWorker.register('sw.js')
+                    .then(function () { window.__swStatus = 'ok'; })
+                    .catch(function (err) { window.__swStatus = 'erro: ' + (err && err.message ? err.message : err); });
             });
         }
     })();
@@ -1987,6 +1990,14 @@ body {
         .gate-notice button { margin-top: 0.6rem; }
 
         .gate-foot { margin-top: 1.5rem; color: var(--white-50); font-size: 0.85rem; }
+
+        .gate-diag-list { list-style: none; margin: 0.9rem 0 0.6rem; display: grid; gap: 0.5rem; font-size: 0.88rem; color: var(--white-70); text-align: left; }
+        .gate-diag-list li { display: flex; gap: 0.6rem; align-items: flex-start; word-break: break-word; }
+        .gate-diag-list .dg { flex: none; width: 1.2em; font-weight: 800; text-align: center; }
+        .gate-diag-list .dg.ok { color: #34d399; }
+        .gate-diag-list .dg.bad { color: #f87171; }
+        .gate-diag-list .dg.warn { color: #fbbf24; }
+        .gate-diag-tip { margin-top: 0.6rem; padding: 0.75rem 0.9rem; border-radius: 0.8rem; background: var(--gold-10); border: 1px solid var(--gold-30); font-size: 0.88rem; color: var(--white-70); text-align: left; }
     </style>
 </head>
 <body>
@@ -2026,10 +2037,19 @@ body {
             <details class="gate-manual" id="gateManual" style="display: none;">
                 <summary>Prefere instalar manualmente?</summary>
                 <ol class="gate-steps">
-                    <li><strong>Celular:</strong> abra o menu do navegador (⋮) e toque em <strong>Instalar aplicativo</strong> ou <strong>Adicionar à tela inicial</strong>.</li>
+                    <li><strong>Android (Chrome):</strong> abra o menu ⋮ e toque em <strong>Instalar app</strong>. Se só aparecer <strong>Adicionar à tela inicial</strong>, toque nele e escolha <strong>Instalar</strong>. Se aparecer <strong>Abrir app</strong>, ele já está instalado: abra pelo ícone.</li>
                     <li><strong>Computador:</strong> clique no ícone de instalar na barra de endereço ou em ⋮ → <strong>Instalar Nova Brawl</strong>.</li>
                     <li>Depois de instalar, abra a Nova Brawl pelo ícone do app.</li>
                 </ol>
+            </details>
+
+            <details class="gate-manual" id="gateDiag">
+                <summary>Não consegue instalar? Ver diagnóstico</summary>
+                <ul class="gate-diag-list" id="gateDiagList"><li>Verificando…</li></ul>
+                <div class="gate-diag-tip" id="gateDiagTip" style="display: none;"></div>
+                <div style="text-align: center; margin-top: 0.8rem;">
+                    <button class="btn btn-outline btn-sm" id="gateDiagCopy"><i class="fas fa-copy"></i> Copiar diagnóstico</button>
+                </div>
             </details>
 
             <div class="gate-notice warn" id="gateInAppNotice">
@@ -2054,7 +2074,7 @@ body {
         var isAndroid = /Android/i.test(ua);
         // Link direto do APK (ex.: um arquivo nas Releases do GitHub). Deixe vazio para esconder o botão.
         var APK_URL = '';
-        var isInApp = /FBAN|FBAV|Instagram|Line\/|Snapchat|TikTok|musical_ly|BytedanceWebview|MicroMessenger|Twitter/i.test(ua);
+        var isInApp = /FBAN|FBAV|Instagram|Line\/|Snapchat|TikTok|musical_ly|BytedanceWebview|MicroMessenger|Twitter|; wv\)/i.test(ua);
 
         var $ = function (id) { return document.getElementById(id); };
         var installBtn = $('gateInstallBtn');
@@ -2109,6 +2129,149 @@ body {
         });
 
         window.addEventListener('appinstalled', markInstalled);
+
+        // ===== DIAGNÓSTICO DE INSTALAÇÃO =====
+        var diagLines = [];
+
+        function browserName() {
+            if (/Edg\//.test(ua) || /EdgA\//.test(ua) || /EdgiOS/.test(ua)) return 'Edge';
+            if (/SamsungBrowser/.test(ua)) return 'Samsung Internet';
+            if (/OPR\/|OPiOS/.test(ua)) return 'Opera';
+            if (/MiuiBrowser/.test(ua)) return 'Navegador Xiaomi (MIUI)';
+            if (/UCBrowser/.test(ua)) return 'UC Browser';
+            if (/Firefox\/|FxiOS/.test(ua)) return 'Firefox';
+            if (/CriOS/.test(ua) || /Chrome\//.test(ua)) return 'Chrome';
+            if (/Safari\//.test(ua)) return 'Safari';
+            return 'desconhecido';
+        }
+
+        async function fileStatus(url) {
+            try {
+                var r = await fetch(url, { cache: 'no-store' });
+                return { status: r.status, res: r };
+            } catch (e) { return { status: 0, res: null }; }
+        }
+
+        function fileName(url) { return url.split('?')[0].split('/').pop(); }
+
+        async function runDiagnostics() {
+            var out = [];           // { t: 'ok'|'bad'|'warn', msg }
+            var problems = [];      // ações recomendadas
+            var add = function (t, msg) { out.push({ t: t, msg: msg }); };
+
+            // Endereço seguro
+            var secure = window.isSecureContext;
+            add(secure ? 'ok' : 'bad', secure ? 'Endereço seguro (HTTPS)' : 'Endereço NÃO é seguro (precisa ser https://)');
+            if (!secure) problems.push('Abra o site pelo endereço https://.');
+
+            // Navegador
+            var bn = browserName();
+            var bnWarn = isInApp || (!isIOS && !/Chrome|Edge|Samsung|Firefox|Opera/.test(bn)) || (isIOS && bn !== 'Safari');
+            add(bnWarn ? 'warn' : 'ok', 'Navegador: ' + bn + (isInApp ? ' (dentro de outro app)' : ''));
+            if (isInApp) problems.push('Você está dentro de outro aplicativo (Instagram, WhatsApp, etc.). Copie o link e abra no Chrome (Android) ou no Safari (iPhone).');
+            else if (isIOS && bn !== 'Safari') problems.push('No iPhone, abra o site no Safari para instalar.');
+            else if (!isIOS && bnWarn) problems.push('Este navegador pode não suportar a instalação. Abra o site no Chrome.');
+
+            // Manifesto
+            var link = document.querySelector('link[rel="manifest"]');
+            var manifestUrl = link ? link.href : null;
+            var manifest = null;
+            if (!manifestUrl) {
+                add('bad', 'Manifesto: o site não aponta para nenhum manifesto');
+                problems.push('O nb.html publicado não tem a linha <link rel="manifest">. Publique a versão mais nova do arquivo.');
+            } else {
+                var m = await fileStatus(manifestUrl);
+                if (m.status !== 200) {
+                    add('bad', fileName(manifestUrl) + ': não encontrado (erro ' + (m.status || 'rede') + ')');
+                    problems.push('Suba o arquivo ' + fileName(manifestUrl) + ' na MESMA pasta do site (onde está o index.html).');
+                } else {
+                    try { manifest = await m.res.json(); } catch (e) { manifest = null; }
+                    if (!manifest) {
+                        add('bad', fileName(manifestUrl) + ': existe, mas não é um JSON válido');
+                        problems.push('O manifest.webmanifest está corrompido. Suba o arquivo original de novo.');
+                    } else {
+                        add('ok', fileName(manifestUrl) + ': encontrado');
+                        var icons = manifest.icons || [];
+                        var seen = {};
+                        for (var i = 0; i < icons.length; i++) {
+                            var iu = new URL(icons[i].src, manifestUrl).href;
+                            if (seen[iu]) continue; seen[iu] = 1;
+                            var st = await fileStatus(iu);
+                            if (st.status === 200) add('ok', fileName(iu) + ': encontrado');
+                            else {
+                                add('bad', fileName(iu) + ': não encontrado (erro ' + (st.status || 'rede') + ')');
+                                problems.push('Suba o ícone ' + fileName(iu) + ' na mesma pasta do site.');
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Service worker
+            var sw = await fileStatus('sw.js');
+            if (sw.status !== 200) {
+                add('bad', 'sw.js: não encontrado (erro ' + (sw.status || 'rede') + ')');
+                problems.push('Suba o arquivo sw.js na MESMA pasta do site.');
+            } else {
+                var reg = null;
+                try { reg = await navigator.serviceWorker.getRegistration(); } catch (e) {}
+                if (reg && (reg.active || reg.installing || reg.waiting)) add('ok', 'sw.js: ativo');
+                else if (String(window.__swStatus || '').indexOf('erro') === 0) {
+                    add('bad', 'sw.js: falhou ao registrar (' + window.__swStatus.replace('erro: ', '') + ')');
+                    problems.push('O navegador recusou o sw.js. Confirme que ele está na mesma pasta do index.html e recarregue.');
+                } else add('warn', 'sw.js: ainda registrando (aguarde e abra o diagnóstico de novo)');
+            }
+
+            // Convite de instalação
+            var hasPrompt = !!window.__deferredPrompt;
+            add(hasPrompt ? 'ok' : (isIOS ? 'warn' : 'warn'),
+                isIOS ? 'iPhone: não há botão automático, use Compartilhar → Adicionar à Tela de Início'
+                      : (hasPrompt ? 'O navegador liberou a instalação' : 'O navegador ainda não liberou a instalação'));
+
+            var installedBefore = false;
+            try { installedBefore = localStorage.getItem('nbAppInstalled') === '1'; } catch (e) {}
+            if (installedBefore) {
+                add('warn', 'Este aparelho já instalou o app antes');
+                problems.push('Se o app já está instalado, abra-o pelo ícone na tela inicial. Se o menu ⋮ do Chrome mostra "Abrir app", é isso.');
+            }
+
+            var hardFail = out.some(function (o) { return o.t === 'bad'; });
+            if (!problems.length && !hasPrompt && !isIOS) {
+                problems.push('O site está correto. Se o menu ⋮ do Chrome mostra "Abrir app", o app já está instalado: abra pelo ícone. Se não, feche o Chrome completamente, abra o site de novo e aguarde alguns segundos.');
+            }
+
+            // desenha
+            var sym = { ok: '✔', bad: '✖', warn: '!' };
+            $('gateDiagList').innerHTML = out.map(function (o) {
+                return '<li><span class="dg ' + o.t + '">' + sym[o.t] + '</span><span>' + o.msg.replace(/</g, '&lt;') + '</span></li>';
+            }).join('');
+            var tip = $('gateDiagTip');
+            if (problems.length) {
+                tip.innerHTML = '<strong>O que fazer:</strong><br>' + problems.map(function (x) { return '• ' + x.replace(/</g, '&lt;'); }).join('<br>');
+                tip.style.display = '';
+            } else tip.style.display = 'none';
+
+            diagLines = out.map(function (o) { return sym[o.t] + ' ' + o.msg; })
+                .concat(problems.map(function (x) { return '→ ' + x; }));
+            diagLines.unshift('Nova Brawl – diagnóstico (' + location.origin + location.pathname + ')', 'UA: ' + ua);
+            return hardFail;
+        }
+
+        var diagBox = $('gateDiag');
+        diagBox.addEventListener('toggle', function () { if (diagBox.open) runDiagnostics(); });
+        $('gateDiagCopy').addEventListener('click', function () {
+            var txt = diagLines.join('\n');
+            var done = function () { $('gateDiagCopy').innerHTML = '<i class="fas fa-check"></i> Copiado'; };
+            if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done).catch(function () { window.prompt('Copie:', txt); });
+            else window.prompt('Copie:', txt);
+        });
+
+        // Se algo essencial estiver faltando no servidor, já abre o diagnóstico sozinho
+        window.addEventListener('load', function () {
+            setTimeout(function () {
+                runDiagnostics().then(function (hardFail) { if (hardFail) diagBox.open = true; });
+            }, 1500);
+        });
 
         $('gateCopyBtn').addEventListener('click', function () {
             var url = location.href.split('?')[0];
